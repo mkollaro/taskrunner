@@ -1,10 +1,9 @@
 # Task-executor
 
-The task executor makes it easy to run a certain sequence of tasks and later
-their cleanups and is useful for running tasks with many varying
-configurations.
+Execute a certain sequence of tasks and later their cleanups. It is useful for
+running tasks with many varying configurations.
 
-## Example
+## Basic usage
 
 ```python
 import task-executor
@@ -32,7 +31,7 @@ Save that code into `example.py` and run it:
     $ python example.py
     hello world
     task2
-    task2clean
+    task2 clean
     goodbye
 
 
@@ -44,7 +43,7 @@ list and for each task, it instantiates `ExampleTask` with the rest of the
 dictionary content as parameters and then executes `ExampleTask.run()`. After
 it passes trough the whole list, it goes trough it in reverse order and
 executes `ExampleTask.cleanup()` for each item. The tasks can write into
-`self.context` and the content of it will be passed to the next task.
+`context` and the content of it will be passed to the next task.
 
 ## Ideas
 
