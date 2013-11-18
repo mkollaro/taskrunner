@@ -45,6 +45,9 @@ it passes trough the whole list, it goes trough it in reverse order and
 executes `ExampleTask.cleanup()` for each item. The tasks can write into
 `context` and the content of it will be passed to the next task.
 
+If you terminate the run using `ctrl-c`, it will go straight to the cleanups.
+Sending the termination signal again will stop it completely.
+
 ## Ideas
 
 * create CLI command that would work work similarly as Fabric, it would take a
@@ -53,4 +56,7 @@ executes `ExampleTask.cleanup()` for each item. The tasks can write into
 * support parallel run of tasks by using some special
   `parallel([taskA, taskB])` wrapper
 * control the cleanups by parameter `cleanup=['always','never','pronto']` or
-  perhaps `cleanup=['yes', 'no', 'only']
+  perhaps `cleanup=['yes', 'no', 'only']`
+* what if the content of the configuration dictionary depends on the result of
+  some other, previously running task? Maybe `eval` could help, e.g.
+  `eval(context['some-result'])`
