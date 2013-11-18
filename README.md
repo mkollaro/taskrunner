@@ -59,4 +59,4 @@ Sending the termination signal again will stop it completely.
   perhaps `cleanup=['yes', 'no', 'only']`
 * what if the content of the configuration dictionary depends on the result of
   some other, previously running task? Maybe `eval` could help, e.g.
-  `eval('context['some-result']')`, but that is of course quite dangerous
+  `eval("context['some-result']")`, but that is of course quite dangerous
