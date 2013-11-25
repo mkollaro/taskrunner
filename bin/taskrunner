@@ -1,0 +1,124 @@
+#!/usr/bin/env python
+#
+# Copyright (c) 2013 Red Hat, Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#           http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+"""Dynamically load a Python module, run taskrunner with a pipeline from it.
+
+The task configurations (or pipelines, or a combination of them) specified on
+the command line will be read from the dynamically loaded Python module, put
+into a pipeline and executed by taskrunner.
+"""
+
+import imp
+import logging
+from optparse import OptionParser
+
+import taskrunner
+
+
+logging.basicConfig(level=logging.INFO)
+
+
+def parse_args():
+    """Get positional arguments and options.
+
+    Prints a help message if the arguments are incorrect.
+    :returns: filepath, task_names, options
+    """
+    parser = OptionParser(usage="%prog FILEPATH TASKS [OPTIONS]")
+    choices = ["yes", "no", "only"]
+    parser.add_option("-c", "--cleanup", dest="cleanup",
+                      type="choice", choices=choices, default="yes",
+                      help="Select one of %s. If 'yes', execute the run part"
+                           " of the tasks, then the cleanups in reverse order."
+                           " If 'no', don't run the cleanups."
+                           " If 'only', don't execute the runs, only the"
+                           " cleanups. Default is 'yes'" % choices)
+    parser.add_option("-D", "--redefine", dest="redefine",
+                      action="append",
+                      help="Can be used multiple times. In the exact format"
+                           " 'varname.keyname=newvalue', where"
+                           " 'varname' is some dictionary in the python module"
+                           " that is being used, 'keyname' is some key in it."
+                           " Redefining at other levels (e.g. dictionary in a"
+                           " dictionary) isn't supported.")
+
+    options, positional_arguments = parser.parse_args()
+    if len(positional_arguments) < 2:
+        print "Not enough arguments"
+        parser.print_help()
+        exit(1)
+    filepath = positional_arguments[0]
+    task_names = positional_arguments[1:]
+
+    return filepath, task_names, options
+
+
+def import_python_file(filepath):
+    """Return dynamically imported python source."""
+    return imp.load_source("dynamically_imported", filepath)
+
+
+def get_pipeline(definitions, var_names):
+    """Get a list of task configurations from the definitions module.
+
+    Find var_names in the definitions module and add them to the pipeline.
+    :returns: a list of dictionaries (aka task configurations)
+    """
+    pipeline = []
+    for name in var_names:
+        var = vars(definitions)[name]
+        if type(var) is list or type(var) is tuple:
+            pipeline += var
+        else:
+            pipeline.append(var)
+    return pipeline
+
+
+def redefine_task_configurations(definitions, redefinitions):
+    """Using strings like 'varname.x=something', redefine values in definitions
+
+    :param definitions: module in which the definitions will be rewritten
+    :param redefinitions: list of strings in the exact format
+        'varname.x=something', where 'varname' is some dictionary in the
+        definitions, 'x' is some key in it (doesn't have to exist) and
+        'something' is the new value. Redefining at other levels (e.g.
+        dictionary in a dictionary) isn't supported.
+    """
+    if not redefinitions:
+        return
+    for redef in redefinitions:
+        parts = redef.split('.')
+        if len(parts) != 2:
+            raise Exception("Bad format of configuration redefinition,"
+                            " there has to be exactly one '.' character.")
+        task_name = parts[0]
+        rest = parts[1].split('=')
+        if len(rest) != 2:
+            raise Exception("Bad format of configuration redefinition,"
+                            " there has to be exactly one '=' character.")
+        key = rest[0]
+        value = rest[1]
+        vars(definitions)[task_name][key] = value
+
+
+if __name__ == '__main__':
+    filepath, task_names, options = parse_args()
+
+    definitions = import_python_file(filepath)
+    redefine_task_configurations(definitions, options.redefine)
+    pipeline = get_pipeline(definitions, task_names)
+
+    taskrunner.execute(pipeline, cleanup=options.cleanup)
