@@ -14,28 +14,25 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+"""Dynamically load a Python module, run taskrunner with a pipeline from it.
+
+The task configurations (or pipelines, or a combination of them) specified on
+the command line will be read from the dynamically loaded Python module, put
+into a pipeline and executed by taskrunner.
+"""
+
 import imp
 from optparse import OptionParser
 
 import taskrunner
 
 
-def import_python_file(filepath):
-    return imp.load_source("definitions", filepath)
+def parse_args():
+    """Get positional arguments and options.
 
-
-def get_pipeline(definitions, names):
-    pipeline = []
-    for name in names:
-        var = vars(definitions)[name]
-        if type(var) is list or type(var) is tuple:
-            pipeline += var
-        else:
-            pipeline.append(var)
-    return pipeline
-
-
-if __name__ == '__main__':
+    Prints a help message if the arguments are incorrect.
+    :returns: filepath, task_names, options
+    """
     parser = OptionParser(usage="%prog FILEPATH TASKS [OPTIONS]")
     choices = ["yes", "no", "only"]
     parser.add_option("-c", "--cleanup", dest="cleanup",
@@ -51,9 +48,35 @@ if __name__ == '__main__':
         print "Not enough arguments"
         parser.print_help()
         exit(1)
-
     filepath = positional_arguments[0]
     task_names = positional_arguments[1:]
+
+    return filepath, task_names, options
+
+
+def import_python_file(filepath):
+    """Return dynamically imported python source."""
+    return imp.load_source("dynamically_imported", filepath)
+
+
+def get_pipeline(definitions, var_names):
+    """Get a list of task configurations from the definitions module.
+
+    Find var_names in the definitions module and add them to the pipeline.
+    :returns: a list of dictionaries (aka task configurations)
+    """
+    pipeline = []
+    for name in var_names:
+        var = vars(definitions)[name]
+        if type(var) is list or type(var) is tuple:
+            pipeline += var
+        else:
+            pipeline.append(var)
+    return pipeline
+
+
+if __name__ == '__main__':
+    filepath, task_names, options = parse_args()
 
     definitions = import_python_file(filepath)
     pipeline = get_pipeline(definitions, task_names)
