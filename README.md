@@ -77,6 +77,21 @@ Or even combine pipelines and tasks:
 
     $ taskrunner example.py task_pipeline task1 another_task_pipeline
 
+### Taking control of the cleanup execution
+
+Sometimes you want to only execute the `run()` part of the tasks, debug
+something and only run the cleanups after you are done. To skip the cleanups,
+you can do:
+
+    $ taskrunner example.py task_pipeline --cleanup=never
+
+To run the cleanups only:
+
+    $ taskrunner example.py task_pipeline --cleanup=pronto
+
+Don't forget to make the cleanups independent of the runs, otherwise this won't
+work.
+
 ### The name of a task
 
 By default, the name of a task is the class name. Therefore, if you use
@@ -107,7 +122,6 @@ use it like this:
     $ taskrunner example.py task_pipeline -D \
       task1.msg="hi :)" \
       task2.msg="go away :("
-    
 
 ### Best practices for writing tasks and their configurations
 * don't make the `cleanup()` method dependent on `run()`, because with the
