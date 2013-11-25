@@ -32,7 +32,7 @@ task2 = {'task': ExampleTask,
 pipeline = [task1, task2]
 ```
 
-    $ bin/taskrunner examples/example.py pipeline
+    $ bin/taskrunner examples/simple.py pipeline
     INFO:taskrunner.main:=========== run task1 ===========
     hello world
     INFO:taskrunner.main:=========== run task2 ===========
@@ -42,7 +42,7 @@ pipeline = [task1, task2]
     INFO:taskrunner.main:--------- cleanup task1 ---------
     goodbye
 
-## How it works
+### How it works
 
 The pipeline is a list of task configurations, which are normal Python
 dictionaries with the special item `'task':ExampleTask`. It goes trough the
@@ -52,20 +52,20 @@ of the tasks. After it passes trough the whole list, it goes trough it in
 reverse order and executes `ExampleTask.cleanup()` for each item. The tasks can
 write into `context` and the content of it will be passed to the next task.
 
-## Usage
+### Usage
 
 You can specify the pipeline directly as arguments:
 
-    $ bin/taskrunner examples/example.py task1 task2
+    $ bin/taskrunner examples/simple.py task1 task2
 
 Or you can combine multiple pipelines, which will run all the tasks from each
 pipeline:
 
-    $ bin/taskrunner examples/example.py pipeline another_task_pipeline
+    $ bin/taskrunner examples/simple.py pipeline another_task_pipeline
 
 Or even combine pipelines and tasks (this will run *task2* twice):
 
-    $ bin/taskrunner examples/example.py pipeline task2
+    $ bin/taskrunner examples/simple.py pipeline task2
 
 To use the tool as a library, you can directly use `execute`:
 
@@ -73,28 +73,28 @@ To use the tool as a library, you can directly use `execute`:
 taskrunner.execute([task1, task2])
 ```
 
-### Taking control of the cleanup execution
+#### Taking control of the cleanup execution
 
 Sometimes you want to only execute the `run()` part of the tasks, debug
 something and only run the cleanups after you are done. To skip the cleanups,
 you can do:
 
-    $ bin/taskrunner examples/example.py pipeline --cleanup=no
+    $ bin/taskrunner examples/simple.py pipeline --cleanup=no
 
 To run the cleanups only:
 
-    $ bin/taskrunner examples/example.py pipeline --cleanup=only
+    $ bin/taskrunner examples/simple.py pipeline --cleanup=only
 
 Don't forget to make the cleanups independent of the runs, otherwise this won't
 work.
 
-### Signal handling
+#### Signal handling
 
 If you terminate the run using `ctrl-c` (also known as *SIGINT*), it will go
 straight to the cleanups.  Sending the termination signal again will stop it
 completely. This works for the *SIGTERM* signal too.
 
-### The name of a task
+#### The name of a task
 
 By default, the name of a task is the class name. To have more readable logs,
 you can specify the keyword `name` in the task configuration.
@@ -105,7 +105,7 @@ Sometimes you want to run a sequence of tasks with some changes in their
 configuration, but don't want to change the files. You can redefine it using
 the parameter `-D`.
 
-    $ bin/taskrunner examples/example.py pipeline -D task1.msg=ping
+    $ bin/taskrunner examples/simple.py pipeline -D task1.msg=ping
 
 It can't contain contain any spaces, has to be in the exact format of
 'varname.keyname=newvalue', where 'varname' is a dictionary in the Python file
@@ -122,7 +122,7 @@ times. It gets redefined right before the tasks get run.
   just `.py` files), variable definitions and if conditions are usually
   sufficient
 
-## Ideas
+### Ideas
 
 * support parallel run of tasks by using some special
   `parallel([taskA, taskB])` wrapper
