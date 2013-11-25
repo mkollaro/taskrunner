@@ -5,6 +5,7 @@ running tasks with many varying configurations. It doesn't have any
 dependencies, just the standard library.
 
 ```python
+# file examples/simple.py
 import taskrunner
 class ExampleTask(taskrunner.Task):
     def __init__(self, msg, clean_msg, **kwargs):
@@ -30,8 +31,6 @@ task2 = {'task': ExampleTask,
 
 pipeline = [task1, task2]
 ```
-
-You can find this in `examples/example.py`.
 
     $ bin/taskrunner examples/example.py pipeline
     INFO:taskrunner.main:=========== run task1 ===========
