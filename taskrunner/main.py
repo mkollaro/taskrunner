@@ -15,14 +15,39 @@
 # limitations under the License.
 
 import logging
+from copy import copy
 
 LOG = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
 
 
 class Task(object):
-    pass
+    def __init__(self, **kwargs):
+        pass
+
+    def run(self, context):
+        pass
+
+    def cleanup(self, context):
+        pass
 
 
-def execute():
-    pass
+def execute(pipeline):
+    # initialize tasks with the configurations as parameters
+    tasks = []
+    for task_config in pipeline:
+        params = copy(task_config)
+        params.pop('task')
+        task = task_config['task'](**params)
+        tasks.append(task)
+
+    # run the tasks
+    context = dict()
+    for task in tasks:
+        task.run(context)
+
+    # clean up the tasks in reverse order
+    tasks_reversed = copy(tasks)
+    tasks_reversed.reverse()
+    for task in tasks_reversed:
+        task.cleanup(context)
