@@ -20,7 +20,6 @@ import json
 from copy import copy
 
 LOG = logging.getLogger(__name__)
-logging.basicConfig(level=logging.INFO)
 
 
 class Task(object):
@@ -41,9 +40,16 @@ class Task(object):
 
 
 def execute(pipeline, cleanup="yes"):
-    # initialize tasks with the configurations as parameters
+    """For each task in pipeline, execute its run method, later the cleanup.
+
+    :param pipeline: list of task configurations, which are dictionaries with
+        the special item 'task':TaskClass, which will be instatiated with the
+        rest of the dictionary as parameters
+    :param cleanup: can be 'yes', 'no', only'
+    """
     tasks = []
     context = dict()
+    # initialize tasks with the configurations as parameters
     for task_config in pipeline:
         params = copy(task_config)
         params.pop('task')
@@ -63,7 +69,10 @@ def execute(pipeline, cleanup="yes"):
 
 
 def _run_tasks(tasks, context):
-    # run the tasks, but jump to cleanup if SIGINT or SIGTERM is recieved
+    """For each task, execute its run() method with give context.
+
+    Return immediately if SIGINT or SIGTERM is recieved.
+    """
     original_sigterm_handler = signal.getsignal(signal.SIGTERM)
     signal.signal(signal.SIGTERM, _sigterm_handler)
     try:
@@ -78,11 +87,11 @@ def _run_tasks(tasks, context):
 
 
 def _cleanup_tasks(tasks, context):
-    # clean up the tasks in reverse order
+    """In reversed order, execute the cleanup() method for each task"""
     tasks_reversed = copy(tasks)
     tasks_reversed.reverse()
     for task in tasks_reversed:
-        LOG.info("----------- cleanup %s -----------", task)
+        LOG.info("--------- cleanup %s ---------", task)
         task.cleanup(context)
 
 

@@ -22,9 +22,13 @@ into a pipeline and executed by taskrunner.
 """
 
 import imp
+import logging
 from optparse import OptionParser
 
 import taskrunner
+
+
+logging.basicConfig(level=logging.INFO)
 
 
 def parse_args():
