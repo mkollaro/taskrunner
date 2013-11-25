@@ -22,6 +22,6 @@ task1 = {'task': ExampleTask,
 task2 = {'task': ExampleTask,
          'name': 'task2',
          'msg': 'hello again',
-         'clean_msg': ''}
+         'clean_msg': ':)'}
 
 pipeline = [task1, task2]

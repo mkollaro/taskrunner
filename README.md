@@ -26,7 +26,7 @@ task1 = {'task': ExampleTask,
 task2 = {'task': ExampleTask,
          'name': 'task2',
          'msg': 'hello again',
-         'clean_msg': ''}
+         'clean_msg': ':)'}
 
 pipeline = [task1, task2]
 ```
@@ -39,13 +39,13 @@ You can find this in `examples/example.py`.
     INFO:taskrunner.main:=========== run task2 ===========
     hello again
     INFO:taskrunner.main:--------- cleanup task2 ---------
-
+    :)
     INFO:taskrunner.main:--------- cleanup task1 ---------
     goodbye
 
 ## How it works
 
-It takes a simple list of task configurations, which are normal Python
+The pipeline is a list of task configurations, which are normal Python
 dictionaries with the special item `'task':ExampleTask`. It goes trough the
 list and for each task, it instantiates `ExampleTask` with the rest of the
 dictionary content as parameters. Then it executes `ExampleTask.run()` for all
@@ -64,7 +64,7 @@ pipeline:
 
     $ bin/taskrunner examples/example.py pipeline another_task_pipeline
 
-Or even combine pipelines and tasks (this will run task2 twice):
+Or even combine pipelines and tasks (this will run *task2* twice):
 
     $ bin/taskrunner examples/example.py pipeline task2
 
@@ -97,17 +97,8 @@ completely. This works for the *SIGTERM* signal too.
 
 ### The name of a task
 
-By default, the name of a task is the class name. Therefore, if you use
-
-    task1 = {'task': ExampleTask, ...
-    task2 = {'task': ExampleTask, ...
-
-they will both show up in the logs as *ExampleTask*. You probably don't want
-this, so you can rename them by adding the `name` keyword into the task
-configuration.
-
-    task1 = {'task': ExampleTask, 'name': 'task1', ...
-    task2 = {'task': ExampleTask, 'name': 'task2', ...
+By default, the name of a task is the class name. To have more readable logs,
+you can specify the keyword `name` in the task configuration.
 
 #### Redefining the configuration trough CLI arguments
 
