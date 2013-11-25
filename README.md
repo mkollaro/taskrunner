@@ -7,9 +7,9 @@ running tasks with many varying configurations.
 
 ```python
 import taskrunner
-
 class ExampleTask(taskrunner.Task):
-    def __init__(self, msg, clean_msg):
+    def __init__(self, msg, clean_msg, **kwargs):
+        super(ExampleTask, self).__init__(**kwargs)
         self.msg = msg
         self.clean_msg = clean_msg
 
@@ -46,7 +46,8 @@ reverse order and executes `ExampleTask.cleanup()` for each item. The tasks can
 write into `context` and the content of it will be passed to the next task.
 
 If you terminate the run using `ctrl-c`, it will go straight to the cleanups.
-Sending the termination signal again will stop it completely.
+Sending the termination signal again will stop it completely. This works for
+the *SIGTERM* signal too.
 
 ## Usage
 
@@ -98,12 +99,15 @@ the parameter `-D`.
 
     $ taskrunner example.py task_pipeline -D ExampleTask.msg="hello again"
 
-However, since both 'task1' and 'task2' have the name ExampleTask, it will get
+However, since both *task1* and *task2* have the name *ExampleTask*, it will get
 changed in both of them. You can change it for only one task by renaming it
 using the `name` keyword, as described in the previous section. Then you can
 use it like this:
 
-    $ taskrunner example.py task_pipeline -D task1.msg="hello again"
+    $ taskrunner example.py task_pipeline -D \
+      task1.msg="hi :)" \
+      task2.msg="go away :("
+    
 
 ### Best practices for writing tasks and their configurations
 * don't make the `cleanup()` method dependent on `run()`, because with the
