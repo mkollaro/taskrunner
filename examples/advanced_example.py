@@ -19,4 +19,4 @@ task1 = {'task': ExampleTask, 'name': 'task1',
 task2 = {'task': ExampleTask, 'name': 'task2',
          'msg': 'and now for something completely different'}
 
-taskrunner.execute([task1, task2])
+pipeline = [task1, task2]

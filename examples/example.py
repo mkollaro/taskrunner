@@ -17,4 +17,4 @@ class ExampleTask(taskrunner.Task):
 task1 = {'task': ExampleTask, 'msg': 'hello world', 'clean_msg': 'goodbye'}
 task2 = {'task': ExampleTask, 'msg': 'task2', 'clean_msg': 'task2 clean'}
 
-taskrunner.execute([task1, task2])
+pipeline = [task1, task2]

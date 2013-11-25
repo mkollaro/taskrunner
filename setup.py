@@ -8,6 +8,7 @@ setup(
     url='http://pypi.python.org/pypi/taskrunner/',
     packages=['taskrunner'],
     license='LICENSE',
+    scripts=['bin/taskrunner'],
     description='Execute a certain sequence of tasks and later their'
                 ' cleanups in reverse order.',
     long_description=open('README.md').read(),
