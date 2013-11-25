@@ -1,4 +1,4 @@
-# Task-executor
+# TaskRunner
 
 Execute a certain sequence of tasks and later their cleanups. It is useful for
 running tasks with many varying configurations.
@@ -6,9 +6,9 @@ running tasks with many varying configurations.
 ## Basic usage
 
 ```python
-import task-executor
+import taskrunner
 
-class ExampleTask(task-executor.Task):
+class ExampleTask(taskrunner.Task):
     def __init__(self, msg, clean_msg):
         self.msg = msg
         self.clean_msg = clean_msg
@@ -23,7 +23,7 @@ class ExampleTask(task-executor.Task):
 task1 = {'task': ExampleTask, 'msg': 'hello world', 'clean_msg': 'goodbye'}
 task2 = {'task': ExampleTask, 'msg': 'task2', 'clean_msg': 'task2 clean'}
 
-task-executor.execute([task1, task2])
+taskrunner.execute([task1, task2])
 ```
 
 Save that code into `example.py` and run it:

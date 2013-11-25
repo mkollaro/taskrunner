@@ -18,3 +18,11 @@ import logging
 
 LOG = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
+
+
+class Task(object):
+    pass
+
+
+def execute():
+    pass
