@@ -46,6 +46,14 @@ def parse_args():
                            " If 'no', don't run the cleanups."
                            " If 'only', don't execute the runs, only the"
                            " cleanups. Default is 'yes'" % choices)
+    parser.add_option("-D", "--redefine", dest="redefine",
+                      action="append",
+                      help="Can be used multiple times. In the exact format"
+                           " 'varname.keyname=newvalue', where"
+                           " 'varname' is some dictionary in the python module"
+                           " that is being used, 'keyname' is some key in it."
+                           " Redefining at other levels (e.g. dictionary in a"
+                           " dictionary) isn't supported.")
 
     options, positional_arguments = parser.parse_args()
     if len(positional_arguments) < 2:
@@ -79,10 +87,36 @@ def get_pipeline(definitions, var_names):
     return pipeline
 
 
+def redefine_task_configurations(definitions, redefinitions):
+    """Using strings like 'varname.x=something', redefine values in definitions
+
+    :param definitions: module in which the definitions will be rewritten
+    :param redefinitions: list of strings in the exact format
+        'varname.x=something', where 'varname' is some dictionary in the
+        definitions, 'x' is some key in it (doesn't have to exist) and
+        'something' is the new value. Redefining at other levels (e.g.
+        dictionary in a dictionary) isn't supported.
+    """
+    for redef in redefinitions:
+        parts = redef.split('.')
+        if len(parts) != 2:
+            raise Exception("Bad format of configuration redefinition,"
+                            " there has to be exactly one '.' character.")
+        task_name = parts[0]
+        rest = parts[1].split('=')
+        if len(rest) != 2:
+            raise Exception("Bad format of configuration redefinition,"
+                            " there has to be exactly one '=' character.")
+        key = rest[0]
+        value = rest[1]
+        vars(definitions)[task_name][key] = value
+
+
 if __name__ == '__main__':
     filepath, task_names, options = parse_args()
 
     definitions = import_python_file(filepath)
+    redefine_task_configurations(definitions, options.redefine)
     pipeline = get_pipeline(definitions, task_names)
 
-    taskrunner.execute(pipeline, **vars(options))
+    taskrunner.execute(pipeline, cleanup=options.cleanup)
