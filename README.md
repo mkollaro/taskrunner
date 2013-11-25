@@ -78,11 +78,11 @@ Sometimes you want to only execute the `run()` part of the tasks, debug
 something and only run the cleanups after you are done. To skip the cleanups,
 you can do:
 
-    $ taskrunner example.py task_pipeline --cleanup=never
+    $ taskrunner example.py task_pipeline --cleanup=no
 
 To run the cleanups only:
 
-    $ taskrunner example.py task_pipeline --cleanup=pronto
+    $ taskrunner example.py task_pipeline --cleanup=only
 
 Don't forget to make the cleanups independent of the runs, otherwise this won't
 work.
@@ -100,8 +100,8 @@ By default, the name of a task is the class name. Therefore, if you use
     task1 = {'task': ExampleTask, ...
     task2 = {'task': ExampleTask, ...
 
-they will both show up in the logs as 'ExampleTask'. You probably don't want
-this, so you can rename them by adding the 'name' keyword into the task
+they will both show up in the logs as *ExampleTask*. You probably don't want
+this, so you can rename them by adding the `name` keyword into the task
 configuration.
 
     task1 = {'task': ExampleTask, 'name': 'task1', ...
@@ -135,13 +135,8 @@ use it like this:
 
 ## Ideas
 
-* create CLI command that would work work similarly as Fabric, it would take a
-  list of the task configurations directly
-* make it possible to somehow change the configuration of tasks from the CLI
 * support parallel run of tasks by using some special
   `parallel([taskA, taskB])` wrapper
-* control the cleanups by parameter `cleanup=['always','never','pronto']` or
-  perhaps `cleanup=['yes', 'no', 'only']`
 * what if the content of the configuration dictionary depends on the result of
   some other, previously running task? Maybe `eval` could help, e.g.
   `eval("context['some-result']")`, but that is of course quite dangerous
