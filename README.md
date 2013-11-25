@@ -1,9 +1,8 @@
 # TaskRunner
 
 Execute a certain sequence of tasks and later their cleanups. It is useful for
-running tasks with many varying configurations.
-
-## Basic example
+running tasks with many varying configurations. It doesn't have any
+dependencies, just the standard library.
 
 ```python
 import taskrunner
@@ -35,7 +34,7 @@ Save that code into `example.py` and run it:
     goodbye
 
 
-### How it works
+## How it works
 
 It takes a simple list of task configurations, which are normal Python
 dictionaries with the special item `'task':ExampleTask`. It goes trough the
@@ -44,10 +43,6 @@ dictionary content as parameters. Then it executes `ExampleTask.run()` for all
 of the tasks. After it passes trough the whole list, it goes trough it in
 reverse order and executes `ExampleTask.cleanup()` for each item. The tasks can
 write into `context` and the content of it will be passed to the next task.
-
-If you terminate the run using `ctrl-c`, it will go straight to the cleanups.
-Sending the termination signal again will stop it completely. This works for
-the *SIGTERM* signal too.
 
 ## Usage
 
@@ -91,6 +86,12 @@ To run the cleanups only:
 
 Don't forget to make the cleanups independent of the runs, otherwise this won't
 work.
+
+### Signal handling
+
+If you terminate the run using `ctrl-c` (also known as *SIGINT*), it will go
+straight to the cleanups.  Sending the termination signal again will stop it
+completely. This works for the *SIGTERM* signal too.
 
 ### The name of a task
 
