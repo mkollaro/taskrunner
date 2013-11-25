@@ -16,6 +16,7 @@
 
 import logging
 import signal
+import json
 from copy import copy
 
 LOG = logging.getLogger(__name__)
@@ -24,13 +25,19 @@ logging.basicConfig(level=logging.INFO)
 
 class Task(object):
     def __init__(self, **kwargs):
-        pass
+        if 'name' in kwargs:
+            self.name = kwargs['name']
+        else:
+            self.name = self.__class__.__name__
 
     def run(self, context):
         pass
 
     def cleanup(self, context):
         pass
+
+    def __str__(self):
+        return self.name
 
 
 def execute(pipeline):
@@ -42,12 +49,16 @@ def execute(pipeline):
         params.pop('task')
         task = task_config['task'](**params)
         tasks.append(task)
+        LOG.debug("Task '%s' will be run with parameters:\n%s",
+                  task,
+                  json.dumps(params))
 
     # run the tasks, but jump to cleanup if SIGINT or SIGTERM is recieved
     original_sigterm_handler = signal.getsignal(signal.SIGTERM)
     signal.signal(signal.SIGTERM, sigterm_handler)
     try:
         for task in tasks:
+            LOG.info("=========== run %s ===========", task)
             task.run(context)
     except KeyboardInterrupt:
         LOG.info("Got Ctrl-C during task run, jumping to cleanup")
@@ -59,6 +70,7 @@ def execute(pipeline):
     tasks_reversed = copy(tasks)
     tasks_reversed.reverse()
     for task in tasks_reversed:
+        LOG.info("----------- cleanup %s -----------", task)
         task.cleanup(context)
 
 
