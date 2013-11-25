@@ -19,20 +19,29 @@ class ExampleTask(taskrunner.Task):
         print self.clean_msg
 
 
-task1 = {'task': ExampleTask, 'msg': 'hello world', 'clean_msg': 'goodbye'}
-task2 = {'task': ExampleTask, 'msg': 'task2', 'clean_msg': 'task2 clean'}
+task1 = {'task': ExampleTask,
+         'name': 'task1',
+         'msg': 'hello world',
+         'clean_msg': 'goodbye'}
+task2 = {'task': ExampleTask,
+         'name': 'task2',
+         'msg': 'hello again',
+         'clean_msg': ''}
 
-taskrunner.execute([task1, task2])
+pipeline = [task1, task2]
 ```
 
-Save that code into `example.py` and run it:
+You can find this in `examples/example.py`.
 
-    $ python example.py
+    $ bin/taskrunner examples/example.py pipeline
+    INFO:taskrunner.main:=========== run task1 ===========
     hello world
-    task2
-    task2 clean
-    goodbye
+    INFO:taskrunner.main:=========== run task2 ===========
+    hello again
+    INFO:taskrunner.main:--------- cleanup task2 ---------
 
+    INFO:taskrunner.main:--------- cleanup task1 ---------
+    goodbye
 
 ## How it works
 
@@ -46,31 +55,24 @@ write into `context` and the content of it will be passed to the next task.
 
 ## Usage
 
-You can find more examples in the `examples/` directory.
+You can specify the pipeline directly as arguments:
 
-### Execution trough the command line
-
-Instead of directly using `taskrunner.execute`, you can replace that line in
-`example.py` with a line like this:
-
-    task_pipeline = [task1, task2]
-
-Then you can run it from the CLI like this:
-
-    $ taskrunner example.py task_pipeline
-
-You can specify the pipeline directly:
-
-    $ taskrunner example.py task1 task2
+    $ bin/taskrunner examples/example.py task1 task2
 
 Or you can combine multiple pipelines, which will run all the tasks from each
 pipeline:
 
-    $ taskrunner example.py task_pipeline another_task_pipeline
+    $ bin/taskrunner examples/example.py pipeline another_task_pipeline
 
-Or even combine pipelines and tasks:
+Or even combine pipelines and tasks (this will run task2 twice):
 
-    $ taskrunner example.py task_pipeline task1 another_task_pipeline
+    $ bin/taskrunner examples/example.py pipeline task2
+
+To use the tool as a library, you can directly use `execute`:
+
+```python
+taskrunner.execute([task1, task2])
+```
 
 ### Taking control of the cleanup execution
 
@@ -78,11 +80,11 @@ Sometimes you want to only execute the `run()` part of the tasks, debug
 something and only run the cleanups after you are done. To skip the cleanups,
 you can do:
 
-    $ taskrunner example.py task_pipeline --cleanup=no
+    $ bin/taskrunner examples/example.py pipeline --cleanup=no
 
 To run the cleanups only:
 
-    $ taskrunner example.py task_pipeline --cleanup=only
+    $ bin/taskrunner examples/example.py pipeline --cleanup=only
 
 Don't forget to make the cleanups independent of the runs, otherwise this won't
 work.
@@ -113,20 +115,17 @@ Sometimes you want to run a sequence of tasks with some changes in their
 configuration, but don't want to change the files. You can redefine it using
 the parameter `-D`.
 
-    $ taskrunner example.py task_pipeline -D ExampleTask.msg="hello again"
+    $ bin/taskrunner examples/example.py pipeline -D task1.msg=ping
 
-However, since both *task1* and *task2* have the name *ExampleTask*, it will get
-changed in both of them. You can change it for only one task by renaming it
-using the `name` keyword, as described in the previous section. Then you can
-use it like this:
-
-    $ taskrunner example.py task_pipeline -D \
-      task1.msg="hi :)" \
-      task2.msg="go away :("
+It can't contain contain any spaces, has to be in the exact format of
+'varname.keyname=newvalue', where 'varname' is a dictionary in the Python file
+you're executing. It doesn't support redefinitions on other levels (e.g.
+changing the value of a dictionary in a dictionary).  You can use it multiple
+times. It gets redefined right before the tasks get run.
 
 ### Best practices for writing tasks and their configurations
-* don't make the `cleanup()` method dependent on `run()`, because with the
-  option `--cleanup=pronto`, only the cleanups will be run
+* don't make the `cleanup` method dependent on `run`, because with the
+  option `--cleanup=only`, the `run` method won't get executed
 * put the tasks into a separate file, which will be imported in the file with
   the task configurations
 * use the minimum of Python features in the task configuration files (which are

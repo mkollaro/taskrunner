@@ -97,6 +97,8 @@ def redefine_task_configurations(definitions, redefinitions):
         'something' is the new value. Redefining at other levels (e.g.
         dictionary in a dictionary) isn't supported.
     """
+    if not redefinitions:
+        return
     for redef in redefinitions:
         parts = redef.split('.')
         if len(parts) != 2:
