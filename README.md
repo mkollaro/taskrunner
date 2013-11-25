@@ -3,7 +3,7 @@
 Execute a certain sequence of tasks and later their cleanups. It is useful for
 running tasks with many varying configurations.
 
-## Basic usage
+## Basic example
 
 ```python
 import taskrunner
@@ -40,13 +40,79 @@ Save that code into `example.py` and run it:
 It takes a simple list of task configurations, which are normal Python
 dictionaries with the special item `'task':ExampleTask`. It goes trough the
 list and for each task, it instantiates `ExampleTask` with the rest of the
-dictionary content as parameters and then executes `ExampleTask.run()`. After
-it passes trough the whole list, it goes trough it in reverse order and
-executes `ExampleTask.cleanup()` for each item. The tasks can write into
-`context` and the content of it will be passed to the next task.
+dictionary content as parameters. Then it executes `ExampleTask.run()` for all
+of the tasks. After it passes trough the whole list, it goes trough it in
+reverse order and executes `ExampleTask.cleanup()` for each item. The tasks can
+write into `context` and the content of it will be passed to the next task.
 
 If you terminate the run using `ctrl-c`, it will go straight to the cleanups.
 Sending the termination signal again will stop it completely.
+
+## Usage
+
+You can find more examples in the `examples/` directory.
+
+### Execution trough the command line
+
+Instead of directly using `taskrunner.execute`, you can replace that line in
+`example.py` with a line like this:
+
+    task_pipeline = [task1, task2]
+
+Then you can run it from the CLI like this:
+
+    $ taskrunner example.py task_pipeline
+
+You can specify the pipeline directly:
+
+    $ taskrunner example.py task1 task2
+
+Or you can combine multiple pipelines, which will run all the tasks from each
+pipeline:
+
+    $ taskrunner example.py task_pipeline another_task_pipeline
+
+Or even combine pipelines and tasks:
+
+    $ taskrunner example.py task_pipeline task1 another_task_pipeline
+
+### The name of a task
+
+By default, the name of a task is the class name. Therefore, if you use
+
+    task1 = {'task': ExampleTask, ...
+    task2 = {'task': ExampleTask, ...
+
+they will both show up in the logs as 'ExampleTask'. You probably don't want
+this, so you can rename them by adding the 'name' keyword into the task
+configuration.
+
+    task1 = {'task': ExampleTask, 'name': 'task1', ...
+    task2 = {'task': ExampleTask, 'name': 'task2', ...
+
+#### Redefining the configuration trough CLI arguments
+
+Sometimes you want to run a sequence of tasks with some changes in their
+configuration, but don't want to change the files. You can redefine it using
+the parameter `-D`.
+
+    $ taskrunner example.py task_pipeline -D ExampleTask.msg="hello again"
+
+However, since both 'task1' and 'task2' have the name ExampleTask, it will get
+changed in both of them. You can change it for only one task by renaming it
+using the `name` keyword, as described in the previous section. Then you can
+use it like this:
+
+    $ taskrunner example.py task_pipeline -D task1.msg="hello again"
+
+### Best practices for writing tasks and their configurations
+* don't make the `cleanup()` method dependent on `run()`, because with the
+  option `--cleanup=pronto`, only the cleanups will be run
+* put the tasks into a separate file, which will be imported in the file with
+  the task configurations
+* use the minimum of Python features in the task configuration files (which are
+  just `.py` files), variable definitions and if conditions are usually
+  sufficient
 
 ## Ideas
 
