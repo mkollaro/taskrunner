@@ -81,4 +81,4 @@ if __name__ == '__main__':
     definitions = import_python_file(filepath)
     pipeline = get_pipeline(definitions, task_names)
 
-    taskrunner.execute(pipeline)
+    taskrunner.execute(pipeline, **vars(options))

@@ -40,7 +40,7 @@ class Task(object):
         return self.name
 
 
-def execute(pipeline):
+def execute(pipeline, cleanup="yes"):
     # initialize tasks with the configurations as parameters
     tasks = []
     context = dict()
@@ -53,9 +53,19 @@ def execute(pipeline):
                   task,
                   json.dumps(params))
 
+    if cleanup == 'yes':
+        _run_tasks(tasks, context)
+        _cleanup_tasks(tasks, context)
+    elif cleanup == 'no':
+        _run_tasks(tasks, context)
+    elif cleanup == 'only':
+        _cleanup_tasks(tasks, context)
+
+
+def _run_tasks(tasks, context):
     # run the tasks, but jump to cleanup if SIGINT or SIGTERM is recieved
     original_sigterm_handler = signal.getsignal(signal.SIGTERM)
-    signal.signal(signal.SIGTERM, sigterm_handler)
+    signal.signal(signal.SIGTERM, _sigterm_handler)
     try:
         for task in tasks:
             LOG.info("=========== run %s ===========", task)
@@ -66,6 +76,8 @@ def execute(pipeline):
         LOG.info("Got SIGTERM during task run, jumping to cleanup")
     signal.signal(signal.SIGTERM, original_sigterm_handler)
 
+
+def _cleanup_tasks(tasks, context):
     # clean up the tasks in reverse order
     tasks_reversed = copy(tasks)
     tasks_reversed.reverse()
@@ -74,7 +86,7 @@ def execute(pipeline):
         task.cleanup(context)
 
 
-def sigterm_handler(signum, stackframe):
+def _sigterm_handler(signum, stackframe):
     """Raise exception on SIGTERM signal
     """
     if signum == signal.SIGTERM:
