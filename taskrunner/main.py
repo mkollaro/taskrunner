@@ -15,6 +15,7 @@
 # limitations under the License.
 
 import logging
+import signal
 from copy import copy
 
 LOG = logging.getLogger(__name__)
@@ -35,19 +36,38 @@ class Task(object):
 def execute(pipeline):
     # initialize tasks with the configurations as parameters
     tasks = []
+    context = dict()
     for task_config in pipeline:
         params = copy(task_config)
         params.pop('task')
         task = task_config['task'](**params)
         tasks.append(task)
 
-    # run the tasks
-    context = dict()
-    for task in tasks:
-        task.run(context)
+    # run the tasks, but jump to cleanup if SIGINT or SIGTERM is recieved
+    original_sigterm_handler = signal.getsignal(signal.SIGTERM)
+    signal.signal(signal.SIGTERM, sigterm_handler)
+    try:
+        for task in tasks:
+            task.run(context)
+    except KeyboardInterrupt:
+        LOG.info("Got Ctrl-C during task run, jumping to cleanup")
+    except SigTermException:
+        LOG.info("Got SIGTERM during task run, jumping to cleanup")
+    signal.signal(signal.SIGTERM, original_sigterm_handler)
 
     # clean up the tasks in reverse order
     tasks_reversed = copy(tasks)
     tasks_reversed.reverse()
     for task in tasks_reversed:
         task.cleanup(context)
+
+
+def sigterm_handler(signum, stackframe):
+    """Raise exception on SIGTERM signal
+    """
+    if signum == signal.SIGTERM:
+        raise SigTermException
+
+
+class SigTermException(Exception):
+    pass
