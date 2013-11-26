@@ -23,6 +23,7 @@ into a pipeline and executed by taskrunner.
 
 import imp
 import logging
+from copy import copy
 from optparse import OptionParser
 
 import taskrunner
@@ -48,12 +49,14 @@ def parse_args():
                            " 'on_failure' - only clean up if the run failed;")
     parser.add_option("-D", "--redefine", dest="redefine",
                       action="append",
-                      help="Can be used multiple times. In the exact format"
+                      help="Can be used multiple times. In the format"
+                           " 'varname=newvalue' or"
                            " 'varname.keyname=newvalue', where"
-                           " 'varname' is some dictionary in the python module"
-                           " that is being used, 'keyname' is some key in it."
-                           " Redefining at other levels (e.g. dictionary in a"
-                           " dictionary) isn't supported.")
+                           " 'varname' is some variable/dictionary in the"
+                           " python module that is being loaded,"
+                           " 'keyname' is some key in it."
+                           " You can use as many levels as you want (redefine"
+                           " dictionaries inside dictionaries, etc).")
 
     options, positional_arguments = parser.parse_args()
     if len(positional_arguments) < 2:
@@ -87,38 +90,47 @@ def get_pipeline(definitions, var_names):
     return pipeline
 
 
-def redefine_task_configurations(definitions, redefinitions):
-    """Using strings like 'varname.x=something', redefine values in definitions
+def redefine_variables(definitions, redefinitions):
+    """Using strings like 'varname=something', redefine vars in `definitions`.
 
     :param definitions: module in which the definitions will be rewritten
-    :param redefinitions: list of strings in the exact format
-        'varname.x=something', where 'varname' is some dictionary in the
-        definitions, 'x' is some key in it (doesn't have to exist) and
-        'something' is the new value. Redefining at other levels (e.g.
-        dictionary in a dictionary) isn't supported.
+    :param redefinitions: list of strings in the format
+        `varname=something`, or `varname.key=something` or
+        `varname.key1.key2=something` where 'varname' is either a variable or a
+        dictionary in the definitions. The last example would set
+        `varname[key1]key2] = value`. You can use as many levels as you want
+        to.
     """
     if not redefinitions:
         return
     for redef in redefinitions:
-        parts = redef.split('.')
+        parts = redef.split('=')
         if len(parts) != 2:
             raise Exception("Bad format of configuration redefinition,"
-                            " there has to be exactly one '.' character.")
-        task_name = parts[0]
-        rest = parts[1].split('=')
-        if len(rest) != 2:
-            raise Exception("Bad format of configuration redefinition,"
                             " there has to be exactly one '=' character.")
-        key = rest[0]
-        value = rest[1]
-        vars(definitions)[task_name][key] = value
+        value = parts[1]
+        keys = parts[0].split('.')
+        _set_deep(vars(definitions), keys, value)
+
+
+def _set_deep(dictionary, keys, value):
+    """Set value in a multidimensional dictionary with a list of keys.
+
+    If len(keys) is 3, it will do the equivalent of:
+        dictionary[key[0]][key[1]][key[2]] = value
+    """
+    keys = copy(keys)
+    while len(keys) > 1:
+        key = keys.pop(0)
+        dictionary = dictionary[key]
+    dictionary[keys[0]] = value
 
 
 if __name__ == '__main__':
     filepath, task_names, options = parse_args()
 
     definitions = import_python_file(filepath)
-    redefine_task_configurations(definitions, options.redefine)
+    redefine_variables(definitions, options.redefine)
     pipeline = get_pipeline(definitions, task_names)
 
     taskrunner.execute(pipeline, cleanup=options.cleanup)

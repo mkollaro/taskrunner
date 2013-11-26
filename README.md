@@ -120,11 +120,14 @@ the parameter `-D`.
 
     $ bin/taskrunner examples/simple.py pipeline -D task1.msg=ping
 
-It can't contain contain any spaces, has to be in the exact format of
-'varname.keyname=newvalue', where 'varname' is a dictionary in the Python file
-you're executing. It doesn't support redefinitions on other levels (e.g.
-changing the value of a dictionary in a dictionary).  You can use it multiple
-times. It gets redefined right before the tasks get run.
+    $ bin/taskrunner examples/simple.py pipeline -D GLOBAL_VAR=abc
+
+It can't contain any spaces, has to be in the exact format of
+`varname.key1.key2.key3...=newvalue`, where `varname` is a variable in the
+Python file you're executing and `newvalue` has to be a string.  You can use as
+many levels as you want (e.g.  changing the value of a dictionary in a
+dictionary) and use it multiple times.  It gets redefined immediately before
+the tasks get run.
 
 ### Best practices for writing tasks and their configurations
 * don't make the `cleanup` method dependent on `run`, because with the
