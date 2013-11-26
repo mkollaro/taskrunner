@@ -1,1 +1,1 @@
-from main import execute, Task
+from main import execute, Task, extend_dict

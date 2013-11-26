@@ -18,7 +18,7 @@ import logging
 import signal
 import json
 import sys
-from copy import copy
+from copy import copy, deepcopy
 
 LOG = logging.getLogger(__name__)
 
@@ -40,6 +40,20 @@ class Task(object):
 
     def __str__(self):
         return self.name
+
+
+def extend_dict(source_dict, diff=None, deepcopy=False):
+    """Return a copy of source_dict, updated with diffs.
+
+    :param diff: dictionary with which source_dict will updated
+    :param deepcopy: use deep copy if True, shallow copy if False
+    """
+    if deepcopy:
+        new_dict = deepcopy(source_dict)
+    else:
+        new_dict = copy(source_dict)
+    new_dict.update(diff)
+    return new_dict
 
 
 def execute(pipeline, cleanup="yes"):
