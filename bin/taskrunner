@@ -38,14 +38,14 @@ def parse_args():
     :returns: filepath, task_names, options
     """
     parser = OptionParser(usage="%prog FILEPATH TASKS [OPTIONS]")
-    choices = ["yes", "no", "only"]
+    choices = ['always', 'never', 'pronto', 'on_success', 'on_failure']
     parser.add_option("-c", "--cleanup", dest="cleanup",
-                      type="choice", choices=choices, default="yes",
-                      help="Select one of %s. If 'yes', execute the run part"
-                           " of the tasks, then the cleanups in reverse order."
-                           " If 'no', don't run the cleanups."
-                           " If 'only', don't execute the runs, only the"
-                           " cleanups. Default is 'yes'" % choices)
+                      type="choice", choices=choices, default='always',
+                      help="'always' - default behaviour;"
+                           " 'never' - don't run the cleanups;"
+                           " 'pronto' - only do the cleanups;"
+                           " 'on_success' - only clean up if the run was OK;"
+                           " 'on_failure' - only clean up if the run failed;")
     parser.add_option("-D", "--redefine", dest="redefine",
                       action="append",
                       help="Can be used multiple times. In the exact format"

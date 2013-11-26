@@ -79,19 +79,32 @@ Sometimes you want to only execute the `run()` part of the tasks, debug
 something and only run the cleanups after you are done. To skip the cleanups,
 you can do:
 
-    $ bin/taskrunner examples/simple.py pipeline --cleanup=no
+    $ bin/taskrunner examples/simple.py pipeline --cleanup=never
 
 To run the cleanups only:
 
-    $ bin/taskrunner examples/simple.py pipeline --cleanup=only
+    $ bin/taskrunner examples/simple.py pipeline --cleanup=pronto
+
+You can also use the options `--cleanup=on_success` or `--cleanup=on_failure`,
+which will get executed based on how the `run` turned out.
 
 Don't forget to make the cleanups independent of the runs, otherwise this won't
 work.
 
-#### Signal handling
+#### Exception and signal handling
+
+When an exception occurs in the task run, its traceback is logged and it jumps
+right into the cleanups. However, it doesn't clean up the tasks that didn't run
+(but it does clean up the task which failed and got only partially executed).
+
+If you get an exception during some cleanup, the traceback is logged but
+execution continues with the next task's cleanup.
+
+The list of errors gets logged again after everything else finishes, in the
+order they happened.
 
 If you terminate the run using `ctrl-c` (also known as *SIGINT*), it will go
-straight to the cleanups.  Sending the termination signal again will stop it
+straight to the cleanups. Sending the termination signal again will stop it
 completely. This works for the *SIGTERM* signal too.
 
 #### The name of a task
@@ -115,7 +128,8 @@ times. It gets redefined right before the tasks get run.
 
 ### Best practices for writing tasks and their configurations
 * don't make the `cleanup` method dependent on `run`, because with the
-  option `--cleanup=only`, the `run` method won't get executed
+  option `--cleanup=pronto`, the `run` method won't get executed
+* don't assume that the `run` got executed completely
 * put the tasks into a separate file, which will be imported in the file with
   the task configurations
 * use the minimum of Python features in the task configuration files (which are
