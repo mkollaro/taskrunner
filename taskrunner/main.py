@@ -24,6 +24,8 @@ LOG = logging.getLogger(__name__)
 
 
 class Task(object):
+    """Base task from which all other should derive
+    """
     def __init__(self, **kwargs):
         if 'name' in kwargs:
             self.name = kwargs['name']
@@ -70,6 +72,9 @@ def execute(pipeline, cleanup="yes"):
 
 def _initialize_tasks(pipeline):
     """Initialize tasks with the configurations as parameters.
+
+    :param pipeline: list of task configurations
+    :returns: list of task objects
     """
     tasks = []
     for task_config in pipeline:
@@ -123,7 +128,14 @@ def _run_tasks(tasks, context):
 
 
 def _cleanup_tasks(tasks, context, continue_on_failures=True):
-    """In reversed order, execute the cleanup() method for each task"""
+    """In reversed order, execute the cleanup() method for each task.
+
+    :param tasks: list of task objects
+    :param context: shared variable to pass into the cleanup
+    :param continue_on_failures: if True, go to next cleanup if an error
+        occurs
+    :returns: list of error descriptions
+    """
     tasks_reversed = copy(tasks)
     tasks_reversed.reverse()
     failures = []
@@ -145,6 +157,7 @@ def _cleanup_tasks(tasks, context, continue_on_failures=True):
 
 
 def _log_errors(run_failures, cleanup_failures):
+    """Log a shortened description for each error that occured, in order"""
     if run_failures or cleanup_failures:
         LOG.info("========================================================")
         LOG.info("Tasks finished unsuccessfully with the following errors:")
