@@ -18,7 +18,7 @@ import logging
 import signal
 import json
 import sys
-from copy import copy, deepcopy
+import copy
 
 LOG = logging.getLogger(__name__)
 
@@ -26,8 +26,10 @@ LOG = logging.getLogger(__name__)
 class Task(object):
     """Base task from which all other should derive
     """
-    def __init__(self, **kwargs):
-        if 'name' in kwargs:
+    def __init__(self, name=None, **kwargs):
+        if name is not None:
+            self.name = name
+        elif 'name' in kwargs:
             self.name = kwargs['name']
         else:
             self.name = self.__class__.__name__
@@ -49,9 +51,9 @@ def extend_dict(source_dict, diff=None, deepcopy=False):
     :param deepcopy: use deep copy if True, shallow copy if False
     """
     if deepcopy:
-        new_dict = deepcopy(source_dict)
+        new_dict = copy.deepcopy(source_dict)
     else:
-        new_dict = copy(source_dict)
+        new_dict = copy.copy(source_dict)
     new_dict.update(diff)
     return new_dict
 
@@ -92,7 +94,7 @@ def _initialize_tasks(pipeline):
     """
     tasks = []
     for task_config in pipeline:
-        params = copy(task_config)
+        params = copy.copy(task_config)
         params.pop('task')
         task = task_config['task'](**params)
         tasks.append(task)
@@ -150,7 +152,7 @@ def _cleanup_tasks(tasks, context, continue_on_failures=True):
         occurs
     :returns: list of error descriptions
     """
-    tasks_reversed = copy(tasks)
+    tasks_reversed = copy.copy(tasks)
     tasks_reversed.reverse()
     failures = []
     for task in tasks_reversed:
