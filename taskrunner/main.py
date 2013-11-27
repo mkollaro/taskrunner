@@ -18,7 +18,7 @@ import logging
 import signal
 import json
 import sys
-import copy
+from copy import copy, deepcopy
 
 LOG = logging.getLogger(__name__)
 
@@ -44,17 +44,19 @@ class Task(object):
         return self.name
 
 
-def extend_dict(source_dict, diff=None, deepcopy=False):
+def extend_dict(source_dict, diff=None, deep=False):
     """Return a copy of source_dict, updated with diffs.
 
     :param diff: dictionary with which source_dict will updated
     :param deepcopy: use deep copy if True, shallow copy if False
     """
-    if deepcopy:
-        new_dict = copy.deepcopy(source_dict)
+    if deep:
+        new_dict = deepcopy(source_dict)
     else:
-        new_dict = copy.copy(source_dict)
-    new_dict.update(diff)
+        new_dict = copy(source_dict)
+
+    if diff:
+        new_dict.update(diff)
     return new_dict
 
 
@@ -94,7 +96,7 @@ def _initialize_tasks(pipeline):
     """
     tasks = []
     for task_config in pipeline:
-        params = copy.copy(task_config)
+        params = copy(task_config)
         params.pop('task')
         task = task_config['task'](**params)
         tasks.append(task)
@@ -152,7 +154,7 @@ def _cleanup_tasks(tasks, context, continue_on_failures=True):
         occurs
     :returns: list of error descriptions
     """
-    tasks_reversed = copy.copy(tasks)
+    tasks_reversed = copy(tasks)
     tasks_reversed.reverse()
     failures = []
     for task in tasks_reversed:
