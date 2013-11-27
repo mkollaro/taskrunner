@@ -75,25 +75,36 @@ def import_python_file(filepath):
     return imp.load_source("dynamically_imported", filepath)
 
 
-def get_var_from_module(definitions, var_name):
-    parts = var_name.split('.')
+def get_var_from_module(module, var):
+    """Get module.var
+
+    If var is something like `moduleA.moduleB.name`, it will return
+    `module.moduleA.moduleB.name`.
+
+    :param var: string with the variable name, or something like `moduleA.name`
+    """
+    parts = var.split('.')
     if len(parts) == 1:
-        return vars(definitions)[var_name]
+        return vars(module)[var]
     else:
         # the var is in an included module
-        module = vars(definitions)[parts[0]]
+        module = vars(module)[parts[0]]
         return get_var_from_module(module, '.'.join(parts[1:]))
 
 
-def get_pipeline(definitions, var_names):
-    """Get a list of task configurations from the definitions module.
+def get_pipeline(module, var_names):
+    """Get a list of task configurations from the module.
 
-    Find var_names in the definitions module and add them to the pipeline.
+    Find var_names in the module and add them to the pipeline.
+
+    :param var_names: list of strings with the names of the task
+        configurations, or their module name + their name, like
+        'moduleA.mytask'
     :returns: a list of dictionaries (aka task configurations)
     """
     pipeline = []
     for name in var_names:
-        var = get_var_from_module(definitions, name)
+        var = get_var_from_module(module, name)
         if type(var) is list or type(var) is tuple:
             pipeline += var
         else:
@@ -101,14 +112,14 @@ def get_pipeline(definitions, var_names):
     return pipeline
 
 
-def redefine_variables(definitions, redefinitions):
-    """Using strings like 'varname=something', redefine vars in `definitions`.
+def redefine_variables(module, redefinitions):
+    """Using strings like 'varname=something', redefine vars in `module`.
 
-    :param definitions: module in which the definitions will be rewritten
+    :param module: Python module in which variables will be rewritten
     :param redefinitions: list of strings in the format
         `varname=something`, or `varname.key=something` or
         `varname.key1.key2=something` where 'varname' is either a variable or a
-        dictionary in the definitions. The last example would set
+        dictionary in the module. The last example would set
         `varname[key1]key2] = value`. You can use as many levels as you want
         to.
     """
@@ -121,14 +132,20 @@ def redefine_variables(definitions, redefinitions):
                             " there has to be exactly one '=' character.")
         value = parts[1]
         keys = parts[0].split('.')
-        _set_deep(vars(definitions), keys, value)
+        _set_deep(module, keys, value)
 
 
 def _set_deep(dictionary, keys, value):
     """Set value in a multidimensional dictionary with a list of keys.
 
+    It's possible to use this to set things in Python modules too, e.g.
+    `dictionary=module1, keys = [module2, module3, var]`, It will change the
+    value of `module1.module2.module3.var = newvalue`.
+
     If len(keys) is 3, it will do the equivalent of:
         dictionary[key[0]][key[1]][key[2]] = value
+    :param dictionary: a dict or Python module
+    :param keys: keys in the dictionary of names of Python modules
     """
     keys = copy(keys)
     while len(keys) > 1:
@@ -142,8 +159,8 @@ def _set_deep(dictionary, keys, value):
 if __name__ == '__main__':
     filepath, task_names, options = parse_args()
 
-    definitions = import_python_file(filepath)
-    redefine_variables(definitions, options.redefine)
-    pipeline = get_pipeline(definitions, task_names)
+    module = import_python_file(filepath)
+    redefine_variables(module, options.redefine)
+    pipeline = get_pipeline(module, task_names)
 
     taskrunner.execute(pipeline, cleanup=options.cleanup)

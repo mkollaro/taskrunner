@@ -129,6 +129,16 @@ many levels as you want (e.g.  changing the value of a dictionary in a
 dictionary) and use it multiple times.  It gets redefined immediately before
 the tasks get run.
 
+#### Using multiple files for the task configurations
+
+You probably don't want to have everything in a single file. You can import
+another module and you'll still be able to reference it on the command line and
+redefine the values in it. In the file `examples/advanced.py`, the simple
+example gets imported, and you can use it like this:
+
+    $ bin/taskrunner examples/advanced.py mytask simple.task1 \
+        -D simple.task1.msg=ping
+
 ### Best practices for writing tasks and their configurations
 * don't make the `cleanup` method dependent on `run`, because with the
   option `--cleanup=pronto`, the `run` method won't get executed
