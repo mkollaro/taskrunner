@@ -32,7 +32,7 @@ task2 = {'task': ExampleTask,
 pipeline = [task1, task2]
 ```
 
-    $ bin/taskrunner examples/simple.py pipeline
+    $ bin/taskrunner -f examples/simple.py pipeline
     INFO:taskrunner.main:=========== run task1 ===========
     hello world
     INFO:taskrunner.main:=========== run task2 ===========
@@ -56,16 +56,16 @@ write into `context` and the content of it will be passed to the next task.
 
 You can specify the pipeline directly as arguments:
 
-    $ bin/taskrunner examples/simple.py task1 task2
+    $ bin/taskrunner -f examples/simple.py task1 task2
 
 Or you can combine multiple pipelines, which will run all the tasks from each
 pipeline:
 
-    $ bin/taskrunner examples/simple.py pipeline another_task_pipeline
+    $ bin/taskrunner -f examples/simple.py pipeline another_task_pipeline
 
 Or even combine pipelines and tasks (this will run *task2* twice):
 
-    $ bin/taskrunner examples/simple.py pipeline task2
+    $ bin/taskrunner -f examples/simple.py pipeline task2
 
 To use the tool as a library, you can directly use `execute`:
 
@@ -79,11 +79,11 @@ Sometimes you want to only execute the `run()` part of the tasks, debug
 something and only run the cleanups after you are done. To skip the cleanups,
 you can do:
 
-    $ bin/taskrunner examples/simple.py pipeline --cleanup=never
+    $ bin/taskrunner -f examples/simple.py pipeline --cleanup=never
 
 To run the cleanups only:
 
-    $ bin/taskrunner examples/simple.py pipeline --cleanup=pronto
+    $ bin/taskrunner -f examples/simple.py pipeline --cleanup=pronto
 
 You can also use the options `--cleanup=on_success` or `--cleanup=on_failure`,
 which will get executed based on how the `run` turned out.
@@ -118,9 +118,9 @@ Sometimes you want to run a sequence of tasks with some changes in their
 configuration, but don't want to change the files. You can redefine it using
 the parameter `-D`.
 
-    $ bin/taskrunner examples/simple.py pipeline -D task1.msg=ping
+    $ bin/taskrunner -f examples/simple.py pipeline -D task1.msg=ping
 
-    $ bin/taskrunner examples/simple.py pipeline -D GLOBAL_VAR=abc
+    $ bin/taskrunner -f examples/simple.py pipeline -D GLOBAL_VAR=abc
 
 It can't contain any spaces, has to be in the exact format of
 `varname.key1.key2.key3...=newvalue`, where `varname` is a variable in the
@@ -131,13 +131,16 @@ the tasks get run.
 
 #### Using multiple files for the task configurations
 
-You probably don't want to have everything in a single file. You can import
-another module and you'll still be able to reference it on the command line and
-redefine the values in it. In the file `examples/advanced.py`, the simple
-example gets imported, and you can use it like this:
+You probably don't want to have everything in a single file. You can load
+multiple modules and reference the tasks normally.
 
-    $ bin/taskrunner examples/advanced.py mytask simple.task1 \
-        -D simple.task1.msg=ping
+    $ bin/taskrunner -f examples/advanced.py -f examples/simple.py \
+        mytask task1 task2
+
+In case you have any name conflicts, you can specify the name of the module.
+
+    $ bin/taskrunner -f examples/advanced.py -f examples/simple.py \
+        advanced.pipeline
 
 ### Best practices for writing tasks and their configurations
 * don't make the `cleanup` method dependent on `run`, because with the
@@ -148,11 +151,3 @@ example gets imported, and you can use it like this:
 * use the minimum of Python features in the task configuration files (which are
   just `.py` files), variable definitions and if conditions are usually
   sufficient
-
-### Ideas
-
-* support parallel run of tasks by using some special
-  `parallel([taskA, taskB])` wrapper
-* what if the content of the configuration dictionary depends on the result of
-  some other, previously running task? Maybe `eval` could help, e.g.
-  `eval("context['some-result']")`, but that is of course quite dangerous

@@ -21,6 +21,7 @@ the command line will be read from the dynamically loaded Python module, put
 into a pipeline and executed by taskrunner.
 """
 
+import os
 import imp
 import logging
 from copy import copy
@@ -39,7 +40,11 @@ def parse_args():
     Prints a help message if the arguments are incorrect.
     :returns: filepath, task_names, options
     """
-    parser = OptionParser(usage="%prog FILEPATH TASKS [OPTIONS]")
+    parser = OptionParser(usage="%prog -f FILE TASKS [OPTIONS]")
+    parser.add_option("-f", "--file", dest="files",
+                      action="append",
+                      help="Python source code with the task configurations."
+                           " You can use more than one of them")
     choices = ['always', 'never', 'pronto', 'on_success', 'on_failure']
     parser.add_option("-c", "--cleanup", dest="cleanup",
                       type="choice", choices=choices, default='always',
@@ -59,20 +64,54 @@ def parse_args():
                            " You can use as many levels as you want (redefine"
                            " dictionaries inside dictionaries, etc).")
 
-    options, positional_arguments = parser.parse_args()
-    if len(positional_arguments) < 2:
-        print "Not enough arguments"
+    options, tasks = parser.parse_args()
+    if not tasks:
+        print "No task was specified"
         parser.print_help()
         exit(1)
-    filepath = positional_arguments[0]
-    task_names = positional_arguments[1:]
+    if not options.files:
+        print "No files were specified"
+        parser.print_help()
+        exit(1)
 
-    return filepath, task_names, options
+    return tasks, options
 
 
 def import_python_file(filepath):
-    """Return dynamically imported python source."""
-    return imp.load_source("dynamically_imported", filepath)
+    """Dynamically import python source file.
+
+    :returns: (module_name, module)
+    """
+    name = os.path.basename(filepath).split('.')[0]
+    return (name, imp.load_source(name, filepath))
+
+
+def get_var_from_modules(modules, var):
+    """Find the variable in one of the modules
+
+    If `var` is 'moduleA.varname', where 'moduleA' is a name of one of the
+    modules in the `modules` dict, it will load it from there. If it is just
+    'varname', it will try to find it in all of them. If it is
+    'moduleX.varname' and 'moduleX' isn't in the `modules` dict, it will try to
+    find it in all the modules.
+
+    :param var: string with the variable name, or something like `moduleA.name`
+    :returns: variable content
+    """
+    loaded_var = None
+    parts = var.split('.', 1)
+    if len(parts) > 1 and parts[0] in modules:
+        loaded_var = get_var_from_module(modules[parts[0]], parts[1])
+    else:
+        for module in modules.values():
+            loaded_var = get_var_from_module(module, var)
+            if loaded_var is not None:
+                break
+
+    if loaded_var is not None:
+        return loaded_var
+    else:
+        raise Exception("Variable '%s' was not found" % var)
 
 
 def get_var_from_module(module, var):
@@ -83,28 +122,32 @@ def get_var_from_module(module, var):
 
     :param var: string with the variable name, or something like `moduleA.name`
     """
-    parts = var.split('.')
+    parts = var.split('.', 1)
     if len(parts) == 1:
-        return vars(module)[var]
+        if var in vars(module):
+            return vars(module)[var]
+        else:
+            return None
     else:
         # the var is in an included module
         module = vars(module)[parts[0]]
-        return get_var_from_module(module, '.'.join(parts[1:]))
+        return get_var_from_module(module, parts[1])
 
 
-def get_pipeline(module, var_names):
+def get_pipeline(modules, var_names):
     """Get a list of task configurations from the module.
 
     Find var_names in the module and add them to the pipeline.
 
     :param var_names: list of strings with the names of the task
         configurations, or their module name + their name, like
-        'moduleA.mytask'
+        'moduleA.mytask' (you don't need to specify the module name if you
+        don't have any task name conflicts)
     :returns: a list of dictionaries (aka task configurations)
     """
     pipeline = []
     for name in var_names:
-        var = get_var_from_module(module, name)
+        var = get_var_from_modules(modules, name)
         if type(var) is list or type(var) is tuple:
             pipeline += var
         else:
@@ -157,10 +200,10 @@ def _set_deep(dictionary, keys, value):
 
 
 if __name__ == '__main__':
-    filepath, task_names, options = parse_args()
+    task_names, options = parse_args()
 
-    module = import_python_file(filepath)
-    redefine_variables(module, options.redefine)
-    pipeline = get_pipeline(module, task_names)
+    modules = dict(import_python_file(f) for f in options.files)
+    #redefine_variables(modules, options.redefine)
+    pipeline = get_pipeline(modules, task_names)
 
     taskrunner.execute(pipeline, cleanup=options.cleanup)
