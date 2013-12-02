@@ -110,9 +110,10 @@ completely. This works for the *SIGTERM* signal too.
 #### The name of a task
 
 By default, the name of a task is the class name. To have more readable logs,
-you can specify the keyword `name` in the task configuration.
+you can specify the keyword `name` in the task configuration. The task names
+can be important for configuration redefinition from the command line.
 
-#### Redefining the configuration trough CLI arguments
+#### Redefining the task configuration trough CLI arguments
 
 Sometimes you want to run a sequence of tasks with some changes in their
 configuration, but don't want to change the files. You can redefine it using
@@ -120,14 +121,15 @@ the parameter `-D`.
 
     $ bin/taskrunner -f examples/simple.py pipeline -D task1.msg=ping
 
-    $ bin/taskrunner -f examples/simple.py pipeline -D GLOBAL_VAR=abc
-
 It can't contain any spaces, has to be in the exact format of
-`varname.key1.key2.key3...=newvalue`, where `varname` is a variable in the
-Python file you're executing and `newvalue` has to be a string.  You can use as
-many levels as you want (e.g.  changing the value of a dictionary in a
-dictionary) and use it multiple times.  It gets redefined immediately before
-the tasks get run.
+`taskname.key1.key2.key3...=newvalue`, where `taskname` is either the name of
+the task specified in the configuration dictionary or the class name. If more
+tasks have the same name, it will get rewritten for all of them. For example,
+
+    $ bin/taskrunner -f examples/simple.py pipeline -D ExampleTask.msg=ping
+
+will change the message for both `task1` and `task2`, because they have the
+same class name.
 
 #### Using multiple files for the task configurations
 
@@ -150,4 +152,5 @@ In case you have any name conflicts, you can specify the name of the module.
   the task configurations
 * use the minimum of Python features in the task configuration files (which are
   just `.py` files), variable definitions and if conditions are usually
-  sufficient
+  sufficient. You will be later able to switch to some other configuration
+  format.

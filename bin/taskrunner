@@ -14,10 +14,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Dynamically load a Python module, run taskrunner with a pipeline from it.
+"""Dynamically load Python modules, run taskrunner with a pipeline from them.
 
 The task configurations (or pipelines, or a combination of them) specified on
-the command line will be read from the dynamically loaded Python module, put
+the command line will be read from the dynamically loaded Python modules, put
 into a pipeline and executed by taskrunner.
 """
 
@@ -25,13 +25,13 @@ import os
 import imp
 import logging
 from copy import copy
-from types import ModuleType
 from optparse import OptionParser
 
 import taskrunner
 
 
 logging.basicConfig(level=logging.INFO)
+LOG = logging.getLogger(__name__)
 
 
 def parse_args():
@@ -56,13 +56,12 @@ def parse_args():
     parser.add_option("-D", "--redefine", dest="redefine",
                       action="append",
                       help="Can be used multiple times. In the format"
-                           " 'varname=newvalue' or"
-                           " 'varname.keyname=newvalue', where"
-                           " 'varname' is some variable/dictionary in the"
-                           " python module that is being loaded,"
-                           " 'keyname' is some key in it."
-                           " You can use as many levels as you want (redefine"
-                           " dictionaries inside dictionaries, etc).")
+                           " 'taskname.key=newvalue' or"
+                           " 'taskname.key1.key2.key3...=newvalue', where"
+                           " 'taskname' is either the name of the task given"
+                           " in its config dictionary or the name of the"
+                           " class. If more tasks have the same name, all will"
+                           " be redefined.")
 
     options, tasks = parser.parse_args()
     if not tasks:
@@ -155,55 +154,67 @@ def get_pipeline(modules, var_names):
     return pipeline
 
 
-def redefine_variables(module, redefinitions):
-    """Using strings like 'varname=something', redefine vars in `module`.
+def redefine_configuration(pipeline, redefinitions):
+    """Using strings like `taskname.key=newvalue`, redefine task configs.
 
-    :param module: Python module in which variables will be rewritten
-    :param redefinitions: list of strings in the format
-        `varname=something`, or `varname.key=something` or
-        `varname.key1.key2=something` where 'varname' is either a variable or a
-        dictionary in the module. The last example would set
-        `varname[key1]key2] = value`. You can use as many levels as you want
-        to.
+    :param pipeline: list of task configurations
+    :param redefinitions: list of strings in the format `taskname.key=newvalue`
+        or `taskname.key1.key2=newvalue`, where 'taskname' is either the 'name'
+        provided in the task configuration, or the class name of the task. It
+        will overwrite all tasks which match the name.
     """
     if not redefinitions:
         return
+    _check_redefinition_strings(redefinitions)
+    for redef in redefinitions:
+        keys, value = redef.split('=')
+        task_name, keys = keys.split('.', 1)
+        tasks = [t for t in pipeline
+                 if t['name'] == task_name or t['task'].__name__ == task_name]
+        if not tasks:
+            raise RedefinitionError("No task with name '%s' found in pipeline"
+                                    % task_name)
+        LOG.info("Redefining '%s.%s' into '%s' for %d tasks"
+                 % (task_name, keys, value, len(tasks)))
+        for task in tasks:
+            _set_deep(task, keys.split('.'), value)
+
+
+def _check_redefinition_strings(redefinitions):
+    msg = ("Bad format of configuration redefinition '%s', "
+           " there has to be %s character")
     for redef in redefinitions:
         parts = redef.split('=')
         if len(parts) != 2:
-            raise Exception("Bad format of configuration redefinition,"
-                            " there has to be exactly one '=' character.")
-        value = parts[1]
-        keys = parts[0].split('.')
-        _set_deep(module, keys, value)
+            raise RedefinitionError(msg % (redef, "exactly one '='"))
+        if '.' not in parts[0]:
+            raise RedefinitionError(msg % (redef, "at least one '.'"))
 
 
 def _set_deep(dictionary, keys, value):
     """Set value in a multidimensional dictionary with a list of keys.
 
-    It's possible to use this to set things in Python modules too, e.g.
-    `dictionary=module1, keys = [module2, module3, var]`, It will change the
-    value of `module1.module2.module3.var = newvalue`.
-
     If len(keys) is 3, it will do the equivalent of:
         dictionary[key[0]][key[1]][key[2]] = value
     :param dictionary: a dict or Python module
-    :param keys: keys in the dictionary of names of Python modules
+    :param keys: list of keys in the dictionary
     """
     keys = copy(keys)
     while len(keys) > 1:
         key = keys.pop(0)
-        if type(dictionary) is ModuleType:
-            dictionary = vars(dictionary)
         dictionary = dictionary[key]
     dictionary[keys[0]] = value
+
+
+class RedefinitionError(Exception):
+    pass
 
 
 if __name__ == '__main__':
     task_names, options = parse_args()
 
     modules = dict(import_python_file(f) for f in options.files)
-    #redefine_variables(modules, options.redefine)
     pipeline = get_pipeline(modules, task_names)
+    redefine_configuration(pipeline, options.redefine)
 
     taskrunner.execute(pipeline, cleanup=options.cleanup)

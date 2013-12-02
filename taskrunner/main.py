@@ -19,6 +19,7 @@ import signal
 import json
 import sys
 from copy import copy, deepcopy
+from pprint import pformat
 
 LOG = logging.getLogger(__name__)
 
@@ -31,7 +32,8 @@ class Task(object):
             self.name = name
         elif 'name' in kwargs:
             self.name = kwargs['name']
-        else:
+
+        if not self.name:
             self.name = self.__class__.__name__
 
     def run(self, context):
@@ -70,6 +72,7 @@ def execute(pipeline, cleanup="yes"):
         'on_failure'
     """
     context = dict()
+    LOG.debug("Executing tasks:\n%s", pformat(pipeline))
     tasks = _initialize_tasks(pipeline)
 
     executed_tasks = tasks
