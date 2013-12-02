@@ -32,8 +32,7 @@ class Task(object):
             self.name = name
         elif 'name' in kwargs:
             self.name = kwargs['name']
-
-        if not self.name:
+        else:
             self.name = self.__class__.__name__
 
     def run(self, context):
