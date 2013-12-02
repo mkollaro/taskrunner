@@ -1,6 +1,9 @@
+import logging
 import taskrunner
 
 from examples import simple
+
+LOG = logging.getLogger(__name__)
 
 
 class AdvancedTask(taskrunner.Task):
@@ -9,7 +12,7 @@ class AdvancedTask(taskrunner.Task):
         self.msg = msg
 
     def run(self, context):
-        print self.msg
+        LOG.info(self.msg)
         context['myresult'] = 5
 
     def cleanup(self, context):

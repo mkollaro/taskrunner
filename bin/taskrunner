@@ -31,11 +31,6 @@ import taskrunner
 
 LOG = logging.getLogger('taskrunner')
 
-LOG_FORMAT = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-BLACK, RED, GREEN, YELLOW, BLUE, MAGENTA, CYAN, WHITE = \
-    ['\033[1;3%sm' % i for i in range(8)]
-RESET = '\033[0m'
-
 
 def parse_args():
     """Get positional arguments and options.
@@ -77,24 +72,6 @@ def parse_args():
         exit(1)
 
     return tasks, options
-
-
-def set_logging_options(color=True, log_format=LOG_FORMAT, level=logging.INFO):
-    """Make the logging output pretty.
-
-    :param color: if True, give different colors to INFO, WARNING and ERROR
-        levels
-    :param log_format: string with logging format, see docs of logging module
-    :param level: what level (and higher) of messages will be logged
-    """
-    if color:
-        logging.addLevelName(logging.INFO, GREEN
-                             + logging.getLevelName(logging.INFO) + RESET)
-        logging.addLevelName(logging.WARNING, YELLOW
-                             + logging.getLevelName(logging.WARNING) + RESET)
-        logging.addLevelName(logging.ERROR, RED
-                             + logging.getLevelName(logging.ERROR) + RESET)
-    logging.basicConfig(level=level, format=log_format)
 
 
 def import_python_file(filepath):
@@ -234,7 +211,7 @@ class RedefinitionError(Exception):
 
 if __name__ == '__main__':
     task_names, options = parse_args()
-    set_logging_options()
+    taskrunner.logs.set_logging_options()
 
     modules = dict(import_python_file(f) for f in options.files)
     pipeline = get_pipeline(modules, task_names)
