@@ -32,15 +32,17 @@ task2 = {'task': ExampleTask,
 pipeline = [task1, task2]
 ```
 
-    $ bin/taskrunner -f examples/simple.py pipeline
-    INFO:taskrunner.main:=========== run task1 ===========
-    hello world
-    INFO:taskrunner.main:=========== run task2 ===========
-    hello again
-    INFO:taskrunner.main:--------- cleanup task2 ---------
-    :)
-    INFO:taskrunner.main:--------- cleanup task1 ---------
-    goodbye
+```
+$ bin/taskrunner -f examples/simple.py pipeline
+2013-12-02 19:46:37,952 - taskrunner - INFO - =========== run task1 ===========
+hello world
+2013-12-02 19:46:37,953 - taskrunner - INFO - =========== run task2 ===========
+hello again
+2013-12-02 19:46:37,953 - taskrunner - INFO - --------- cleanup task2 ---------
+:)
+2013-12-02 19:46:37,953 - taskrunner - INFO - --------- cleanup task1 ---------
+goodbye
+```
 
 ### How it works
 

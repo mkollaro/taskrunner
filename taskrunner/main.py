@@ -21,7 +21,7 @@ import sys
 from copy import copy, deepcopy
 from pprint import pformat
 
-LOG = logging.getLogger(__name__)
+LOG = logging.getLogger('taskrunner')
 
 
 class Task(object):
