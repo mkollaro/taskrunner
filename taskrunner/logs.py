@@ -21,27 +21,22 @@ BLACK, RED, GREEN, YELLOW, BLUE, MAGENTA, CYAN, WHITE = \
     ['\033[1;3%sm' % i for i in range(8)]
 RESET = '\033[0m'
 
+LOG_LEVELS = {
+    'NOTSET': logging.NOTSET,
+    'DEBUG': logging.DEBUG,
+    'INFO': logging.INFO,
+    'WARNING': logging.WARNING,
+    'ERROR': logging.ERROR,
+    'CRITICAL': logging.CRITICAL,
+}
 
-def get_log_level(level):
-    """Get the log level by its name."""
-    return {
-        'NOTSET': logging.NOTSET,
-        'DEBUG': logging.DEBUG,
-        'INFO': logging.INFO,
-        'WARNING': logging.WARNING,
-        'ERROR': logging.ERROR,
-        'CRITICAL': logging.CRITICAL,
-    }[level]
-
-
-def get_log_level_color(level):
-    """What color should the log level have."""
-    return {
-        'INFO': GREEN,
-        'WARNING': YELLOW,
-        'ERROR': RED,
-        'CRITICAL': RED,
-    }.get(level, '')
+LOG_LEVEL_COLORS = {
+    'DEBUG': BLUE,
+    'INFO': GREEN,
+    'WARNING': YELLOW,
+    'ERROR': RED,
+    'CRITICAL': MAGENTA,
+}
 
 
 def set_logging_options(color=True, log_format=LOG_FORMAT, log_level='INFO'):
@@ -52,8 +47,6 @@ def set_logging_options(color=True, log_format=LOG_FORMAT, log_level='INFO'):
     :param level: what level (and higher) of messages will be logged
     """
     if color:
-        for level in ['INFO', 'WARNING', 'ERROR', 'CRITICAL']:
-            logging.addLevelName(get_log_level(level),
-                                 get_log_level_color(level) + level + RESET)
-    log_level = get_log_level(log_level)
-    logging.basicConfig(level=log_level, format=log_format)
+        for level, color in LOG_LEVEL_COLORS.items():
+            logging.addLevelName(LOG_LEVELS[level], color + level + RESET)
+    logging.basicConfig(level=LOG_LEVELS[log_level], format=log_format)
