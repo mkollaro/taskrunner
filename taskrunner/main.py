@@ -16,7 +16,6 @@
 
 import logging
 import signal
-import json
 import sys
 from copy import copy, deepcopy
 from pprint import pformat
@@ -102,9 +101,6 @@ def _initialize_tasks(pipeline):
         params.pop('task')
         task = task_config['task'](**params)
         tasks.append(task)
-        LOG.debug("Task '%s' will be run with parameters:\n%s",
-                  task,
-                  json.dumps(params))
     return tasks
 
 
