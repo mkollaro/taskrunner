@@ -170,7 +170,8 @@ def redefine_configuration(pipeline, redefinitions):
         keys, value = redef.split('=')
         task_name, keys = keys.split('.', 1)
         tasks = [t for t in pipeline
-                 if t['name'] == task_name or t['task'].__name__ == task_name]
+                 if ('name' in t and t['name'] == task_name)
+                 or t['task'].__name__ == task_name]
         if not tasks:
             raise RedefinitionError("No task with name '%s' found in pipeline"
                                     % task_name)
