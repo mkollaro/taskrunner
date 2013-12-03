@@ -70,19 +70,20 @@ def execute(pipeline, cleanup="yes"):
         'on_failure'
     """
     context = dict()
+    context['_taskrunner'] = {'run_failures': [], 'cleanup_failures': []}
     LOG.debug("Executing tasks:\n%s", pformat(pipeline))
     tasks = _initialize_tasks(pipeline)
 
     executed_tasks = tasks
-    run_failures = []
-    cleanup_failures = []
     if cleanup != 'pronto':
-        executed_tasks, run_failures = _run_tasks(tasks, context)
+        executed_tasks = _run_tasks(tasks, context)
+    run_failures = context['_taskrunner']['run_failures']
 
     if (cleanup == 'always' or cleanup == 'pronto'
             or (cleanup == 'on_success' and not run_failures)
             or (cleanup == 'on_failure' and run_failures)):
-        cleanup_failures = _cleanup_tasks(executed_tasks, context)
+        _cleanup_tasks(executed_tasks, context)
+    cleanup_failures = context['_taskrunner']['cleanup_failures']
 
     _log_errors(run_failures, cleanup_failures)
     if run_failures or cleanup_failures:
@@ -107,20 +108,18 @@ def _initialize_tasks(pipeline):
 def _run_tasks(tasks, context):
     """For each task, execute its run() method with give context.
 
-    Log the exception if one gets raised.
-    Return immediately if SIGINT or SIGTERM is recieved.
+    Log the exception if one gets raised.  Return immediately if SIGINT or
+    SIGTERM is recieved.  Saves info about failures that happened during task
+    run in `context['_taskrunner']['run_failures']`.
 
     :param tasks: list of task objects
     :param context: shared variable passed between tasks
-    :returns: a pair `(executed_tasks, failures)` is returned. If everything
-        went without a problem or if it was terminated by the user, the result
-        will equal `(tasks, [])`. If an exception was raised,
-        `executed_tasks` will be equal to the part of `tasks` that was already
-        run including the failed task. The `failures` will be the list of info
-        about the failures.
+    :returns: list of executed tasks - if the run went without a problem or if
+        it was terminated by the user, the result will equal `tasks`. If an
+        exception was raised, `executed_tasks` will be equal to the part of
+        `tasks` that was already run including the failed task
     """
     executed_tasks = []
-    failures = []
     original_sigterm_handler = signal.getsignal(signal.SIGTERM)
     signal.signal(signal.SIGTERM, _sigterm_handler)
     try:
@@ -137,24 +136,25 @@ def _run_tasks(tasks, context):
         failure = {'name': ex.__class__.__name__,
                    'msg': str(ex),
                    'task': str(task)}
-        failures.append(failure)
+        context['_taskrunner']['run_failures'].append(failure)
     # restore original signal handler
     signal.signal(signal.SIGTERM, original_sigterm_handler)
-    return executed_tasks, failures
+    return executed_tasks
 
 
 def _cleanup_tasks(tasks, context, continue_on_failures=True):
     """In reversed order, execute the cleanup() method for each task.
 
+    Saves info about failures that happened during task cleanups in
+    `context['_taskrunner']['cleanup_failures']`.
+
     :param tasks: list of task objects
     :param context: shared variable to pass into the cleanup
     :param continue_on_failures: if True, go to next cleanup if an error
         occurs
-    :returns: list of error descriptions
     """
     tasks_reversed = copy(tasks)
     tasks_reversed.reverse()
-    failures = []
     for task in tasks_reversed:
         try:
             LOG.info("--------- cleanup %s ---------", task)
@@ -164,12 +164,9 @@ def _cleanup_tasks(tasks, context, continue_on_failures=True):
             failure = {'name': ex.__class__.__name__,
                        'msg': str(ex),
                        'task': str(task)}
-            failures.append(failure)
-            if continue_on_failures:
-                continue
-            else:
-                return failures
-    return failures
+            context['_taskrunner']['cleanup_failures'].append(failure)
+            if not continue_on_failures:
+                return
 
 
 def _log_errors(run_failures, cleanup_failures):
