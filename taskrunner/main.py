@@ -59,7 +59,7 @@ def extend_dict(source_dict, diff=None, deep=False):
     return new_dict
 
 
-def execute(pipeline, cleanup="yes"):
+def execute(pipeline, cleanup='always'):
     """For each task in pipeline, execute its run method, later the cleanup.
 
     :param pipeline: list of task configurations, which are dictionaries with
