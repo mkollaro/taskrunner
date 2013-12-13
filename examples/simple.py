@@ -8,7 +8,6 @@ class ExampleTask(taskrunner.Task):
         self.clean_msg = clean_msg
 
     def run(self, context):
-        raise Exception
         print self.msg
 
     def cleanup(self, context):
