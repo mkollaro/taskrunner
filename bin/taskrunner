@@ -23,6 +23,7 @@ into a pipeline and executed by taskrunner.
 
 import os
 import imp
+import sys
 import logging
 from copy import copy
 from optparse import OptionParser
@@ -210,6 +211,21 @@ def _set_deep(dictionary, keys, value):
     dictionary[keys[0]] = value
 
 
+def _log_errors(run_failures, cleanup_failures):
+    """Log a shortened description for each error that occured, in order"""
+    if run_failures or cleanup_failures:
+        LOG.info("========================================================")
+        LOG.info("Tasks finished unsuccessfully with the following errors:")
+    if run_failures:
+        for error in run_failures:
+            LOG.error("Exception '%s' in '%s.run': %s",
+                      error['name'], error['task'], error['msg'])
+    if cleanup_failures:
+        for error in cleanup_failures:
+            LOG.error("Exception '%s' in '%s.cleanup': %s",
+                      error['name'], error['task'], error['msg'])
+
+
 class RedefinitionError(Exception):
     pass
 
@@ -222,4 +238,9 @@ if __name__ == '__main__':
     pipeline = get_pipeline(modules, task_names)
     redefine_configuration(pipeline, options.redefine)
 
-    taskrunner.execute(pipeline, cleanup=options.cleanup)
+    try:
+        taskrunner.execute(pipeline, cleanup=options.cleanup)
+    except taskrunner.TaskExecutionException, ex:
+        _log_errors(ex.context['_taskrunner']['run_failures'],
+                    ex.context['_taskrunner']['cleanup_failures'])
+        sys.exit(1)

@@ -16,7 +16,6 @@
 
 import logging
 import signal
-import sys
 from copy import copy, deepcopy
 from pprint import pformat
 
@@ -68,6 +67,8 @@ def execute(pipeline, cleanup="yes"):
         rest of the dictionary as parameters
     :param cleanup: can be 'always', 'never', 'pronto', 'on_success',
         'on_failure'
+    :returns: the context that was shared between the tasks
+    :raises TaskExecutionException: when the run or cleanup fail
     """
     context = dict()
     context['_taskrunner'] = {'run_failures': [], 'cleanup_failures': []}
@@ -85,9 +86,11 @@ def execute(pipeline, cleanup="yes"):
         _cleanup_tasks(executed_tasks, context)
     cleanup_failures = context['_taskrunner']['cleanup_failures']
 
-    _log_errors(run_failures, cleanup_failures)
+    LOG.debug("Context shared between task at finish:\n%s", context)
     if run_failures or cleanup_failures:
-        sys.exit(1)
+        raise TaskExecutionException(context, "There was one or more errors"
+                                     " during task exacution")
+    return context
 
 
 def _initialize_tasks(pipeline):
@@ -169,21 +172,6 @@ def _cleanup_tasks(tasks, context, continue_on_failures=True):
                 return
 
 
-def _log_errors(run_failures, cleanup_failures):
-    """Log a shortened description for each error that occured, in order"""
-    if run_failures or cleanup_failures:
-        LOG.info("========================================================")
-        LOG.info("Tasks finished unsuccessfully with the following errors:")
-    if run_failures:
-        for error in run_failures:
-            LOG.error("Exception '%s' in '%s.run': %s",
-                      error['name'], error['task'], error['msg'])
-    if cleanup_failures:
-        for error in cleanup_failures:
-            LOG.error("Exception '%s' in '%s.cleanup': %s",
-                      error['name'], error['task'], error['msg'])
-
-
 def _sigterm_handler(signum, stackframe):
     """Raise exception on SIGTERM signal
     """
@@ -193,3 +181,9 @@ def _sigterm_handler(signum, stackframe):
 
 class SigTermException(Exception):
     pass
+
+
+class TaskExecutionException(Exception):
+    def __init__(self, context, *args):
+        super(TaskExecutionException, self).__init__(*args)
+        self.context = context
