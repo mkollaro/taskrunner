@@ -59,7 +59,7 @@ def extend_dict(source_dict, diff=None, deep=False):
     return new_dict
 
 
-def execute(pipeline, cleanup='always'):
+def execute(pipeline, cleanup='always', context=None):
     """For each task in pipeline, execute its run method, later the cleanup.
 
     :param pipeline: list of task configurations, which are dictionaries with
@@ -67,10 +67,12 @@ def execute(pipeline, cleanup='always'):
         rest of the dictionary as parameters
     :param cleanup: can be 'always', 'never', 'pronto', 'on_success',
         'on_failure'
+    :param context: initial context, mainly useful for unit testing
     :returns: the context that was shared between the tasks
     :raises TaskExecutionException: when the run or cleanup fail
     """
-    context = dict()
+    if context is None:
+        context = dict()
     context['_taskrunner'] = {'run_failures': [], 'cleanup_failures': []}
     LOG.debug("Executing tasks:\n%s", pformat(pipeline))
     tasks = _initialize_tasks(pipeline)
