@@ -92,9 +92,9 @@ class TestExecute():
     def test_cleanup_on_success_when_failed(self):
         # cleanup='on_success', don't clean up because it failed
         self.task1['task'] = FailingRunTask
-        with assert_raises(taskrunner.TaskExecutionException) as cm:
-            taskrunner.execute([self.task1], cleanup='on_success')
-        context = cm.exception.context
+        context = dict()
+        assert_raises(taskrunner.TaskExecutionException, taskrunner.execute,
+                      [self.task1], cleanup='on_success', context=context)
         name = self.task1['name']
         assert name not in context
 
@@ -109,9 +109,9 @@ class TestExecute():
     def test_cleanup_on_failure_when_failed(self):
         # cleanup='on_failure', clean up because it failed
         self.task1['task'] = FailingRunTask
-        with assert_raises(taskrunner.TaskExecutionException) as cm:
-            taskrunner.execute([self.task1], cleanup='on_failure')
-        context = cm.exception.context
+        context = dict()
+        assert_raises(taskrunner.TaskExecutionException, taskrunner.execute,
+                      [self.task1], cleanup='on_failure', context=context)
         name = self.task1['name']
         assert name in context
         assert 'run' not in context[name]  # because it failed
