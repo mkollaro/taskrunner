@@ -66,6 +66,10 @@ def parse_args():
                       type="choice", choices=choices, default='INFO',
                       help="Select logging level out of %s. Default is 'INFO'"
                            % choices)
+    parser.add_option("--no-timestamp", dest="log_time",
+                      action="store_false", default=True,
+                      help="Do not write timestamp at the beggining of each"
+                      " log line.")
 
     options, tasks = parser.parse_args()
     if not tasks:
@@ -232,7 +236,14 @@ class RedefinitionError(Exception):
 
 if __name__ == '__main__':
     task_names, options = parse_args()
-    taskrunner.logs.set_logging_options(log_level=options.log_level)
+
+    if options.log_time:
+        log_format = taskrunner.logs.FORMAT_TIME
+    else:
+        log_format = taskrunner.logs.FORMAT_SIMPLE
+    taskrunner.logs.set_logging_options(
+        log_format=log_format,
+        log_level=options.log_level)
 
     modules = dict(import_python_file(f) for f in options.files)
     pipeline = get_pipeline(modules, task_names)
