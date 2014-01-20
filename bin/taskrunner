@@ -246,12 +246,13 @@ if __name__ == '__main__':
         log_format=log_format,
         log_level=options.log_level)
 
+    LOG.info("************* TaskRunner start [%s UTC] *************"
+             % datetime.datetime.utcnow())
+
     modules = dict(import_python_file(f) for f in options.files)
     pipeline = get_pipeline(modules, task_names)
     redefine_configuration(pipeline, options.redefine)
 
-    LOG.info("************* TaskRunner start [%s UTC] *************"
-             % datetime.datetime.utcnow())
     try:
         taskrunner.execute(pipeline, cleanup=options.cleanup)
         LOG.info("************* TaskRunner end [%s UTC] *************"
