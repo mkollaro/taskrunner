@@ -21,6 +21,7 @@ the command line will be read from the dynamically loaded Python modules, put
 into a pipeline and executed by taskrunner.
 """
 
+import datetime
 import os
 import imp
 import sys
@@ -249,9 +250,15 @@ if __name__ == '__main__':
     pipeline = get_pipeline(modules, task_names)
     redefine_configuration(pipeline, options.redefine)
 
+    LOG.info("************* TaskRunner start [%s UTC] *************"
+             % datetime.datetime.utcnow())
     try:
         taskrunner.execute(pipeline, cleanup=options.cleanup)
+        LOG.info("************* TaskRunner end [%s UTC] *************"
+                 % datetime.datetime.utcnow())
     except taskrunner.TaskExecutionException, ex:
         _log_errors(ex.context['_taskrunner']['run_failures'],
                     ex.context['_taskrunner']['cleanup_failures'])
+        LOG.info("************* TaskRunner failed [%s UTC] *************"
+                 % datetime.datetime.utcnow())
         sys.exit(1)

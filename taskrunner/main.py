@@ -86,6 +86,9 @@ def execute(pipeline, cleanup='always', context=None):
             or (cleanup == 'on_success' and not run_failures)
             or (cleanup == 'on_failure' and run_failures)):
         _cleanup_tasks(executed_tasks, context)
+    else:
+        LOG.info('Skipping cleanup: cleanup=%s and failures=%s'
+                 % (cleanup, run_failures))
     cleanup_failures = context['_taskrunner']['cleanup_failures']
 
     LOG.debug("Context shared between task at finish:\n%s", context)
