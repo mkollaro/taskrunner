@@ -168,10 +168,20 @@ def redefine_configuration(pipeline, redefinitions):
     """
     if not redefinitions:
         return
-    _check_redefinition_strings(redefinitions)
     for redef in redefinitions:
-        keys, value = redef.split('=')
-        task_name, keys = keys.split('.', 1)
+        try:
+            keys, value = redef.split('=', 1)
+        except ValueError:
+            raise RedefinitionError(
+                "Config redefinition has to contain at least one '='")
+
+        try:
+            task_name, keys = keys.split('.', 1)
+        except ValueError:
+            raise RedefinitionError(
+                "Config redefinition has to contain at least one '.'"
+                " in the key section")
+
         tasks = [t for t in pipeline
                  if ('name' in t and t['name'] == task_name)
                  or t['task'].__name__ == task_name]
@@ -182,17 +192,6 @@ def redefine_configuration(pipeline, redefinitions):
                  % (task_name, keys, value, len(tasks)))
         for task in tasks:
             _set_deep(task, keys.split('.'), value)
-
-
-def _check_redefinition_strings(redefinitions):
-    msg = ("Bad format of configuration redefinition '%s', "
-           " there has to be %s character")
-    for redef in redefinitions:
-        parts = redef.split('=')
-        if len(parts) != 2:
-            raise RedefinitionError(msg % (redef, "exactly one '='"))
-        if '.' not in parts[0]:
-            raise RedefinitionError(msg % (redef, "at least one '.'"))
 
 
 def _set_deep(dictionary, keys, value):
