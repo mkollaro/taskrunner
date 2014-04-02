@@ -8,7 +8,7 @@ except (IOError, ImportError):
 
 setup(
     name='taskrunner',
-    version='0.1.2',
+    version='0.2',
     author='Martina Kollarova',
     author_email='mkollaro@gmail.com',
     url='http://pypi.python.org/pypi/taskrunner/',
