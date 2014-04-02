@@ -21,8 +21,10 @@ the command line will be read from the dynamically loaded Python modules, put
 into a pipeline and executed by taskrunner.
 """
 
+import datetime
 import os
 import imp
+import sys
 import logging
 from copy import copy
 from optparse import OptionParser
@@ -65,6 +67,10 @@ def parse_args():
                       type="choice", choices=choices, default='INFO',
                       help="Select logging level out of %s. Default is 'INFO'"
                            % choices)
+    parser.add_option("--no-timestamp", dest="log_time",
+                      action="store_false", default=True,
+                      help="Do not write timestamp at the beggining of each"
+                      " log line.")
 
     options, tasks = parser.parse_args()
     if not tasks:
@@ -209,16 +215,50 @@ def _set_deep(dictionary, keys, value):
     dictionary[keys[0]] = value
 
 
+def _log_errors(run_failures, cleanup_failures):
+    """Log a shortened description for each error that occured, in order"""
+    if run_failures or cleanup_failures:
+        LOG.info("========================================================")
+        LOG.info("Tasks finished unsuccessfully with the following errors:")
+    if run_failures:
+        for error in run_failures:
+            LOG.error("Exception '%s' in '%s.run': %s",
+                      error['name'], error['task'], error['msg'])
+    if cleanup_failures:
+        for error in cleanup_failures:
+            LOG.error("Exception '%s' in '%s.cleanup': %s",
+                      error['name'], error['task'], error['msg'])
+
+
 class RedefinitionError(Exception):
     pass
 
 
 if __name__ == '__main__':
     task_names, options = parse_args()
-    taskrunner.logs.set_logging_options(log_level=options.log_level)
+
+    if options.log_time:
+        log_format = taskrunner.logs.FORMAT_TIME
+    else:
+        log_format = taskrunner.logs.FORMAT_SIMPLE
+    taskrunner.logs.set_logging_options(
+        log_format=log_format,
+        log_level=options.log_level)
+
+    LOG.info("************* TaskRunner start [%s UTC] *************"
+             % datetime.datetime.utcnow())
 
     modules = dict(import_python_file(f) for f in options.files)
     pipeline = get_pipeline(modules, task_names)
     redefine_configuration(pipeline, options.redefine)
 
-    taskrunner.execute(pipeline, cleanup=options.cleanup)
+    try:
+        taskrunner.execute(pipeline, cleanup=options.cleanup)
+        LOG.info("************* TaskRunner end [%s UTC] *************"
+                 % datetime.datetime.utcnow())
+    except taskrunner.TaskExecutionException, ex:
+        _log_errors(ex.context['_taskrunner']['run_failures'],
+                    ex.context['_taskrunner']['cleanup_failures'])
+        LOG.info("************* TaskRunner failed [%s UTC] *************"
+                 % datetime.datetime.utcnow())
+        sys.exit(1)

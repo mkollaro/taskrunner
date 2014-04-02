@@ -18,4 +18,5 @@ setup(
     description='Execute a certain sequence of tasks and later their'
                 ' cleanups in reverse order.',
     long_description=long_description,
+    tests_require=['nose'],
 )

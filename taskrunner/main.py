@@ -16,7 +16,6 @@
 
 import logging
 import signal
-import sys
 from copy import copy, deepcopy
 from pprint import pformat
 
@@ -60,7 +59,7 @@ def extend_dict(source_dict, diff=None, deep=False):
     return new_dict
 
 
-def execute(pipeline, cleanup="yes"):
+def execute(pipeline, cleanup='always', context=None):
     """For each task in pipeline, execute its run method, later the cleanup.
 
     :param pipeline: list of task configurations, which are dictionaries with
@@ -68,25 +67,35 @@ def execute(pipeline, cleanup="yes"):
         rest of the dictionary as parameters
     :param cleanup: can be 'always', 'never', 'pronto', 'on_success',
         'on_failure'
+    :param context: initial context, mainly useful for unit testing
+    :returns: the context that was shared between the tasks
+    :raises TaskExecutionException: when the run or cleanup fail
     """
-    context = dict()
+    if context is None:
+        context = dict()
+    context['_taskrunner'] = {'run_failures': [], 'cleanup_failures': []}
     LOG.debug("Executing tasks:\n%s", pformat(pipeline))
     tasks = _initialize_tasks(pipeline)
 
     executed_tasks = tasks
-    run_failures = []
-    cleanup_failures = []
     if cleanup != 'pronto':
-        executed_tasks, run_failures = _run_tasks(tasks, context)
+        executed_tasks = _run_tasks(tasks, context)
+    run_failures = context['_taskrunner']['run_failures']
 
     if (cleanup == 'always' or cleanup == 'pronto'
             or (cleanup == 'on_success' and not run_failures)
             or (cleanup == 'on_failure' and run_failures)):
-        cleanup_failures = _cleanup_tasks(executed_tasks, context)
+        _cleanup_tasks(executed_tasks, context)
+    else:
+        LOG.info('Skipping cleanup: cleanup=%s and failures=%s'
+                 % (cleanup, run_failures))
+    cleanup_failures = context['_taskrunner']['cleanup_failures']
 
-    _log_errors(run_failures, cleanup_failures)
+    LOG.debug("Context shared between task at finish:\n%s", context)
     if run_failures or cleanup_failures:
-        sys.exit(1)
+        raise TaskExecutionException(context, "There was one or more errors"
+                                     " during task exacution")
+    return context
 
 
 def _initialize_tasks(pipeline):
@@ -114,20 +123,18 @@ def _initialize_tasks(pipeline):
 def _run_tasks(tasks, context):
     """For each task, execute its run() method with give context.
 
-    Log the exception if one gets raised.
-    Return immediately if SIGINT or SIGTERM is recieved.
+    Log the exception if one gets raised.  Return immediately if SIGINT or
+    SIGTERM is recieved.  Saves info about failures that happened during task
+    run in `context['_taskrunner']['run_failures']`.
 
     :param tasks: list of task objects
     :param context: shared variable passed between tasks
-    :returns: a pair `(executed_tasks, failures)` is returned. If everything
-        went without a problem or if it was terminated by the user, the result
-        will equal `(tasks, [])`. If an exception was raised,
-        `executed_tasks` will be equal to the part of `tasks` that was already
-        run including the failed task. The `failures` will be the list of info
-        about the failures.
+    :returns: list of executed tasks - if the run went without a problem or if
+        it was terminated by the user, the result will equal `tasks`. If an
+        exception was raised, `executed_tasks` will be equal to the part of
+        `tasks` that was already run including the failed task
     """
     executed_tasks = []
-    failures = []
     original_sigterm_handler = signal.getsignal(signal.SIGTERM)
     signal.signal(signal.SIGTERM, _sigterm_handler)
     try:
@@ -144,24 +151,25 @@ def _run_tasks(tasks, context):
         failure = {'name': ex.__class__.__name__,
                    'msg': str(ex),
                    'task': str(task)}
-        failures.append(failure)
+        context['_taskrunner']['run_failures'].append(failure)
     # restore original signal handler
     signal.signal(signal.SIGTERM, original_sigterm_handler)
-    return executed_tasks, failures
+    return executed_tasks
 
 
 def _cleanup_tasks(tasks, context, continue_on_failures=True):
     """In reversed order, execute the cleanup() method for each task.
 
+    Saves info about failures that happened during task cleanups in
+    `context['_taskrunner']['cleanup_failures']`.
+
     :param tasks: list of task objects
     :param context: shared variable to pass into the cleanup
     :param continue_on_failures: if True, go to next cleanup if an error
         occurs
-    :returns: list of error descriptions
     """
     tasks_reversed = copy(tasks)
     tasks_reversed.reverse()
-    failures = []
     for task in tasks_reversed:
         try:
             LOG.info("--------- cleanup %s ---------", task)
@@ -171,27 +179,9 @@ def _cleanup_tasks(tasks, context, continue_on_failures=True):
             failure = {'name': ex.__class__.__name__,
                        'msg': str(ex),
                        'task': str(task)}
-            failures.append(failure)
-            if continue_on_failures:
-                continue
-            else:
-                return failures
-    return failures
-
-
-def _log_errors(run_failures, cleanup_failures):
-    """Log a shortened description for each error that occured, in order"""
-    if run_failures or cleanup_failures:
-        LOG.info("========================================================")
-        LOG.info("Tasks finished unsuccessfully with the following errors:")
-    if run_failures:
-        for error in run_failures:
-            LOG.error("Exception '%s' in '%s.run': %s",
-                      error['name'], error['task'], error['msg'])
-    if cleanup_failures:
-        for error in cleanup_failures:
-            LOG.error("Exception '%s' in '%s.cleanup': %s",
-                      error['name'], error['task'], error['msg'])
+            context['_taskrunner']['cleanup_failures'].append(failure)
+            if not continue_on_failures:
+                return
 
 
 def _sigterm_handler(signum, stackframe):
@@ -203,3 +193,9 @@ def _sigterm_handler(signum, stackframe):
 
 class SigTermException(Exception):
     pass
+
+
+class TaskExecutionException(Exception):
+    def __init__(self, context, *args):
+        super(TaskExecutionException, self).__init__(*args)
+        self.context = context

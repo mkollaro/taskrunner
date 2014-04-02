@@ -16,7 +16,8 @@
 
 import logging
 
-LOG_FORMAT = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+FORMAT_SIMPLE = '%(name)s - %(levelname)s - %(message)s'
+FORMAT_TIME = '%(asctime)s - ' + FORMAT_SIMPLE
 BLACK, RED, GREEN, YELLOW, BLUE, MAGENTA, CYAN, WHITE = \
     ['\033[1;3%sm' % i for i in range(8)]
 RESET = '\033[0m'
@@ -39,7 +40,7 @@ LOG_LEVEL_COLORS = {
 }
 
 
-def set_logging_options(color=True, log_format=LOG_FORMAT, log_level='INFO'):
+def set_logging_options(color=True, log_format=FORMAT_TIME, log_level='INFO'):
     """Make the logging output pretty.
 
     :param color: if True, give different colors to the log level names
