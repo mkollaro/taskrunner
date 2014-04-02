@@ -97,9 +97,16 @@ def _initialize_tasks(pipeline):
     """
     tasks = []
     for task_config in pipeline:
+        if not 'task' in task_config:
+            raise KeyError('Missing "task" key in %s' % task_config)
         params = copy(task_config)
         params.pop('task')
-        task = task_config['task'](**params)
+        try:
+            task = task_config['task'](**params)
+        except Exception:
+            LOG.error('Unable to instantiate task "%s" with params: %s'
+                      % (task_config['task'], params))
+            raise
         tasks.append(task)
     return tasks
 
