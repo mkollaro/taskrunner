@@ -131,15 +131,17 @@ def get_var_from_module(module, var):
     :param var: string with the variable name, or something like `moduleA.name`
     """
     parts = var.split('.', 1)
-    if len(parts) == 1:
-        if var in vars(module):
+    try:
+        if len(parts) == 1:
             return vars(module)[var]
         else:
-            return None
-    else:
-        # the var is in an included module
-        module = vars(module)[parts[0]]
-        return get_var_from_module(module, parts[1])
+            # the var is in an included module
+            module = vars(module)[parts[0]]
+            return get_var_from_module(module, parts[1])
+    except KeyError:
+        # module does not contain specified var
+        # or nested module
+        return None
 
 
 def get_pipeline(modules, var_names):
