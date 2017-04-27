@@ -146,7 +146,7 @@ def _run_tasks(tasks, context):
         LOG.info("Got Ctrl-C during task run, jumping to cleanup")
     except SigTermException:
         LOG.info("Got SIGTERM during task run, jumping to cleanup")
-    except Exception, ex:
+    except Exception as ex:
         LOG.exception("Caught exception while running '%s'", task)
         failure = {'name': ex.__class__.__name__,
                    'msg': str(ex),
@@ -174,7 +174,7 @@ def _cleanup_tasks(tasks, context, continue_on_failures=True):
         try:
             LOG.info("--------- cleanup %s ---------", task)
             task.cleanup(context)
-        except Exception, ex:
+        except Exception as ex:
             LOG.exception("Caught exception while running '%s'", task)
             failure = {'name': ex.__class__.__name__,
                        'msg': str(ex),
